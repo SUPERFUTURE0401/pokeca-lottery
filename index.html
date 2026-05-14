@@ -133,7 +133,7 @@
   <div class="header">
     <div>
       <div class="header-title">🎴 ポケカ抽選管理</div>
-      <div class="header-sub" id="header-sub">2025年 申込状況</div>
+      <div class="header-sub" id="header-sub"></div>
     </div>
     <button class="header-add" onclick="openModal('add-entry')">
       <i class="ti ti-plus"></i> 追加
@@ -164,8 +164,8 @@
       <div class="stat-grid">
         <div class="stat-card"><div class="stat-label">申込中</div><div class="stat-value" id="stat-applied-count">4</div><div class="stat-sub">店舗</div></div>
         <div class="stat-card"><div class="stat-label">当選率（今月）</div><div class="stat-value">33<span style="font-size:14px">%</span></div><div class="stat-sub">1/3 当選</div></div>
-        <div class="stat-card"><div class="stat-label">総申込数</div><div class="stat-value">12</div><div class="stat-sub">2025年</div></div>
-        <div class="stat-card"><div class="stat-label">総当選数</div><div class="stat-value">4</div><div class="stat-sub">2025年</div></div>
+        <div class="stat-card"><div class="stat-label">総申込数</div><div class="stat-value">12</div><div class="stat-sub" id="stat-year-sub1"></div></div>
+        <div class="stat-card"><div class="stat-label">総当選数</div><div class="stat-value">4</div><div class="stat-sub" id="stat-year-sub2"></div></div>
       </div>
       <div class="card">
         <div class="section-label">現在の申込状況</div>
@@ -203,8 +203,8 @@
     <!-- History -->
     <div class="page" id="page-history">
       <div class="stat-grid">
-        <div class="stat-card"><div class="stat-label">当選</div><div class="stat-value" style="color:#27500A;">4</div><div class="stat-sub">2025年合計</div></div>
-        <div class="stat-card"><div class="stat-label">落選</div><div class="stat-value" style="color:#888780;">8</div><div class="stat-sub">2025年合計</div></div>
+        <div class="stat-card"><div class="stat-label">当選</div><div class="stat-value" style="color:#27500A;">4</div><div class="stat-sub" id="hist-year-sub1"></div></div>
+        <div class="stat-card"><div class="stat-label">落選</div><div class="stat-value" style="color:#888780;">8</div><div class="stat-sub" id="hist-year-sub2"></div></div>
       </div>
       <div class="card">
         <div class="section-label">最近の結果</div>
@@ -427,6 +427,12 @@ function showPage(id,btn){
 function openModal(id){ document.getElementById('modal-'+id).classList.add('open'); }
 function closeModal(id){ document.getElementById('modal-'+id).classList.remove('open'); }
 
+var currentYear = new Date().getFullYear();
+document.getElementById('header-sub').textContent = currentYear + '年 申込状況';
+document.getElementById('stat-year-sub1').textContent = currentYear + '年';
+document.getElementById('stat-year-sub2').textContent = currentYear + '年';
+document.getElementById('hist-year-sub1').textContent = currentYear + '年合計';
+document.getElementById('hist-year-sub2').textContent = currentYear + '年合計';
 render();
 </script>
 </body>
