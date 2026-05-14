@@ -428,7 +428,10 @@ function openModal(id){ document.getElementById('modal-'+id).classList.add('open
 function closeModal(id){ document.getElementById('modal-'+id).classList.remove('open'); }
 
 var currentYear = new Date().getFullYear();
-document.getElementById('header-sub').textContent = currentYear + '年 申込状況';
+var now = new Date();
+var month = now.getMonth() + 1;
+var day = now.getDate();
+document.getElementById('header-sub').textContent = currentYear + '年' + month + '月' + day + '日 申込状況';
 document.getElementById('stat-year-sub1').textContent = currentYear + '年';
 document.getElementById('stat-year-sub2').textContent = currentYear + '年';
 document.getElementById('hist-year-sub1').textContent = currentYear + '年合計';
