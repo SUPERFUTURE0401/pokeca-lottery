@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ポケカ抽選管理</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f4;
+    --bg-tertiary: #f0ede8;
+    --text-primary: #1a1a18;
+    --text-secondary: #6b6b68;
+    --border: rgba(0,0,0,0.12);
+    --border-md: rgba(0,0,0,0.22);
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --accent: #178AC0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-primary: #1c1c1a;
+      --bg-secondary: #252523;
+      --bg-tertiary: #111110;
+      --text-primary: #f0ede8;
+      --text-secondary: #9a9a96;
+      --border: rgba(255,255,255,0.1);
+      --border-md: rgba(255,255,255,0.2);
+    }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif; background: var(--bg-tertiary); color: var(--text-primary); min-height: 100vh; }
+  .app { max-width: 430px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; }
+
+  .header { background: var(--bg-primary); border-bottom: 0.5px solid var(--border); padding: 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+  .header-title { font-size: 17px; font-weight: 600; color: var(--text-primary); }
+  .header-sub { font-size: 12px; color: var(--text-secondary); margin-top: 1px; }
+  .header-add { background: var(--accent); color: white; border: none; border-radius: var(--radius-md); padding: 7px 12px; font-size: 13px; cursor: pointer; font-family: inherit; display: flex; align-items: center; gap: 4px; }
+
+  .nav { display: flex; background: var(--bg-primary); border-bottom: 0.5px solid var(--border); position: sticky; top: 57px; z-index: 9; }
+  .nav-btn { flex: 1; padding: 10px 2px; font-size: 10px; color: var(--text-secondary); border: none; background: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; border-bottom: 2px solid transparent; font-family: inherit; transition: color 0.15s; }
+  .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .nav-btn i { font-size: 20px; }
+
+  .content { flex: 1; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+  .page { display: none; flex-direction: column; gap: 10px; }
+  .page.active { display: flex; }
+
+  .card { background: var(--bg-primary); border-radius: var(--radius-lg); border: 0.5px solid var(--border); padding: 14px; }
+  .section-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+
+  .badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 99px; white-space: nowrap; }
+  .badge-applied { background: #E6F1FB; color: #0C447C; }
+  .badge-won { background: #EAF3DE; color: #27500A; }
+  .badge-lost { background: #F1EFE8; color: #5F5E5A; }
+  .badge-pending { background: #FAEEDA; color: #633806; }
+  .badge-none { background: var(--bg-secondary); color: var(--text-secondary); }
+
+  .store-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+  .store-row:last-child { border-bottom: none; }
+  .store-name { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+  .store-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-left: 6px; }
+  .dot-applied { background: #378ADD; }
+  .dot-pending { background: #BA7517; }
+  .dot-lost { background: #888780; }
+  .dot-none { background: #B4B2A9; }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 8px; }
+  .stat-card { background: var(--bg-secondary); border-radius: var(--radius-md); padding: 12px; }
+  .stat-label { font-size: 11px; color: var(--text-secondary); }
+  .stat-value { font-size: 24px; font-weight: 600; color: var(--text-primary); margin-top: 2px; }
+  .stat-sub { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
+
+  .deadline-bar { display: flex; align-items: center; justify-content: space-between; background: #FAEEDA; border-radius: var(--radius-md); padding: 10px 14px; }
+  .deadline-left .label { font-size: 11px; color: #854F0B; }
+  .deadline-left .name { font-size: 13px; font-weight: 500; color: #412402; margin-top: 2px; }
+  .deadline-right { text-align: right; }
+  .deadline-right .days { font-size: 20px; font-weight: 600; color: #412402; }
+  .deadline-right .date { font-size: 11px; color: #854F0B; }
+
+  .history-item { padding: 10px 0; border-bottom: 0.5px solid var(--border); display: flex; gap: 10px; align-items: center; }
+  .history-item:last-child { border-bottom: none; }
+  .history-icon { width: 36px; height: 36px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .icon-won { background: #EAF3DE; color: #639922; }
+  .icon-lost { background: #F1EFE8; color: #888780; }
+  .history-body { flex: 1; min-width: 0; }
+  .history-product { font-size: 13px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .history-store { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+  .history-right { text-align: right; flex-shrink: 0; }
+  .history-date { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+
+  .add-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 11px; border-radius: var(--radius-md); border: 0.5px dashed var(--border-md); background: none; font-size: 13px; color: var(--text-secondary); cursor: pointer; width: 100%; font-family: inherit; margin-top: 10px; }
+  .add-btn:active { background: var(--bg-secondary); }
+
+  .edit-row { padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+  .edit-row:last-child { border-bottom: none; }
+  .edit-row-top { display: flex; align-items: center; justify-content: space-between; }
+  .edit-name { font-size: 14px; font-weight: 500; color: var(--text-primary); }
+  .edit-sub { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
+  .edit-action { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--accent); background: none; border: none; cursor: pointer; font-family: inherit; padding: 4px 0; flex-shrink: 0; }
+  .inline-edit { display: none; margin-top: 8px; }
+  .inline-edit.open { display: flex; gap: 6px; align-items: center; }
+  .inline-input { flex: 1; padding: 8px 10px; border-radius: var(--radius-md); border: 1.5px solid var(--accent); background: var(--bg-secondary); font-size: 14px; color: var(--text-primary); font-family: inherit; outline: none; }
+  .save-btn { padding: 8px 14px; background: var(--accent); color: white; border: none; border-radius: var(--radius-md); font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .cancel-btn { padding: 8px 10px; background: none; border: 0.5px solid var(--border-md); border-radius: var(--radius-md); font-size: 13px; color: var(--text-secondary); cursor: pointer; font-family: inherit; }
+
+  .account-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg-secondary); border-radius: var(--radius-md); }
+  .account-avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: flex-end; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--bg-primary); border-radius: 20px 20px 0 0; padding: 20px 16px env(safe-area-inset-bottom, 24px); width: 100%; }
+  .modal-handle { width: 36px; height: 4px; background: var(--border-md); border-radius: 2px; margin: 0 auto 18px; }
+  .modal-title { font-size: 17px; font-weight: 600; margin-bottom: 16px; color: var(--text-primary); }
+  .form-row { margin-bottom: 12px; }
+  .form-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 5px; display: block; font-weight: 500; }
+  .form-input, .form-select { width: 100%; padding: 10px 12px; border-radius: var(--radius-md); border: 0.5px solid var(--border-md); background: var(--bg-secondary); font-size: 15px; color: var(--text-primary); font-family: inherit; -webkit-appearance: none; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 18px; }
+  .btn-primary { flex: 1; padding: 13px; border-radius: var(--radius-md); background: var(--accent); color: white; border: none; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .btn-cancel { padding: 13px 18px; border-radius: var(--radius-md); background: none; border: 0.5px solid var(--border-md); font-size: 15px; color: var(--text-secondary); cursor: pointer; font-family: inherit; }
+
+  .toast { position: fixed; bottom: calc(env(safe-area-inset-bottom, 0px) + 90px); left: 50%; transform: translateX(-50%); background: rgba(28,28,26,0.92); color: white; font-size: 13px; padding: 10px 18px; border-radius: 99px; opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap; z-index: 200; backdrop-filter: blur(8px); }
+  .toast.show { opacity: 1; }
+
+  .box-pill { font-size: 11px; padding: 2px 8px; border-radius: 99px; border: 0.5px solid var(--border); color: var(--text-secondary); }
+  .box-pill.applied { background: #E6F1FB; border-color: #B5D4F4; color: #0C447C; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div>
+      <div class="header-title">🎴 ポケカ抽選管理</div>
+      <div class="header-sub" id="header-sub">2025年 申込状況</div>
+    </div>
+    <button class="header-add" onclick="openModal('add-entry')">
+      <i class="ti ti-plus"></i> 追加
+    </button>
+  </div>
+
+  <nav class="nav">
+    <button class="nav-btn active" onclick="showPage('dashboard',this)"><i class="ti ti-layout-dashboard"></i>状況</button>
+    <button class="nav-btn" onclick="showPage('latest',this)"><i class="ti ti-box"></i>最新BOX</button>
+    <button class="nav-btn" onclick="showPage('history',this)"><i class="ti ti-clock-hour-4"></i>履歴</button>
+    <button class="nav-btn" onclick="showPage('accounts',this)"><i class="ti ti-users"></i>アカウント</button>
+    <button class="nav-btn" onclick="showPage('settings',this)"><i class="ti ti-settings"></i>設定</button>
+  </nav>
+
+  <div class="content">
+    <!-- Dashboard -->
+    <div class="page active" id="page-dashboard">
+      <div class="deadline-bar">
+        <div class="deadline-left">
+          <div class="label">次の締切</div>
+          <div class="name">ポケモンカードゲーム151 再録</div>
+        </div>
+        <div class="deadline-right">
+          <div class="days">3日</div>
+          <div class="date">5/17まで</div>
+        </div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-label">申込中</div><div class="stat-value" id="stat-applied-count">4</div><div class="stat-sub">店舗</div></div>
+        <div class="stat-card"><div class="stat-label">当選率（今月）</div><div class="stat-value">33<span style="font-size:14px">%</span></div><div class="stat-sub">1/3 当選</div></div>
+        <div class="stat-card"><div class="stat-label">総申込数</div><div class="stat-value">12</div><div class="stat-sub">2025年</div></div>
+        <div class="stat-card"><div class="stat-label">総当選数</div><div class="stat-value">4</div><div class="stat-sub">2025年</div></div>
+      </div>
+      <div class="card">
+        <div class="section-label">現在の申込状況</div>
+        <div id="dashboard-store-list"></div>
+        <button class="add-btn" onclick="openModal('add-entry')"><i class="ti ti-plus"></i> 店舗を追加</button>
+      </div>
+    </div>
+
+    <!-- Latest BOX -->
+    <div class="page" id="page-latest">
+      <div class="card" style="border-color:#B5D4F4;">
+        <div style="font-size:11px;font-weight:600;color:#0C447C;margin-bottom:10px;">🔥 最新発売</div>
+        <div style="display:flex;gap:12px;align-items:flex-start;">
+          <div style="width:64px;height:88px;border-radius:8px;background:#E6F1FB;display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0;">🃏</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:15px;font-weight:600;color:var(--text-primary);">ステラミラクル</div>
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:3px;">2025年7月発売予定</div>
+            <div style="font-size:13px;color:var(--text-primary);margin-top:6px;">¥5,500（税込）</div>
+            <div id="latest-pills" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-label">申込受付中</div>
+        <div class="store-row"><div><div class="store-name">ポケモンカードゲーム151 再録</div><div class="store-sub">締切: 2025年5月17日</div></div><span class="badge badge-pending">受付中</span></div>
+        <div class="store-row"><div><div class="store-name">クリムゾンヘイズ</div><div class="store-sub">締切: 2025年6月1日</div></div><span class="badge badge-none">未申込</span></div>
+      </div>
+      <div class="card">
+        <div class="section-label">今後の発売予定</div>
+        <div class="store-row"><div><div class="store-name">ステラミラクル</div><div class="store-sub">2025年7月</div></div><span class="badge badge-applied">予告済</span></div>
+        <div class="store-row"><div><div class="store-name">スカーレット＆バイオレット</div><div class="store-sub">2025年秋（未定）</div></div><span class="badge badge-none">未定</span></div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="page" id="page-history">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-label">当選</div><div class="stat-value" style="color:#27500A;">4</div><div class="stat-sub">2025年合計</div></div>
+        <div class="stat-card"><div class="stat-label">落選</div><div class="stat-value" style="color:#888780;">8</div><div class="stat-sub">2025年合計</div></div>
+      </div>
+      <div class="card">
+        <div class="section-label">最近の結果</div>
+        <div id="history-list"></div>
+      </div>
+      <button class="add-btn" onclick="openModal('add-result')"><i class="ti ti-plus"></i> 結果を記録する</button>
+    </div>
+
+    <!-- Accounts -->
+    <div class="page" id="page-accounts">
+      <div class="card">
+        <div class="section-label">登録アカウント</div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="account-row">
+            <div class="account-avatar" style="background:#E6F1FB;color:#0C447C;">メ</div>
+            <div><div style="font-size:14px;font-weight:500;color:var(--text-primary);">メインアカウント</div><div id="main-stores" style="font-size:11px;color:var(--text-secondary);margin-top:2px;"></div></div>
+          </div>
+          <div class="account-row">
+            <div class="account-avatar" style="background:#EAF3DE;color:#27500A;">サ</div>
+            <div><div style="font-size:14px;font-weight:500;color:var(--text-primary);">サブアカウント</div><div id="sub-stores" style="font-size:11px;color:var(--text-secondary);margin-top:2px;"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-label">店舗別アカウント設定</div>
+        <div id="accounts-store-list"></div>
+      </div>
+      <button class="add-btn" onclick="openModal('add-account')"><i class="ti ti-plus"></i> アカウントを追加</button>
+    </div>
+
+    <!-- Settings -->
+    <div class="page" id="page-settings">
+      <div class="card">
+        <div class="section-label">店舗名の編集</div>
+        <div id="settings-store-list"></div>
+      </div>
+      <button class="add-btn" onclick="openModal('add-store')"><i class="ti ti-plus"></i> 店舗を追加</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="modal-add-entry" onclick="if(event.target===this)closeModal('add-entry')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">申込を記録する</div>
+    <div class="form-row"><label class="form-label">商品名</label><select class="form-select"><option>ポケモンカードゲーム151 再録</option><option>クリムゾンヘイズ</option><option>ステラミラクル</option></select></div>
+    <div class="form-row"><label class="form-label">店舗</label><select class="form-select" id="sel-entry-store"></select></div>
+    <div class="form-row"><label class="form-label">アカウント</label><select class="form-select"><option>メインアカウント</option><option>サブアカウント</option></select></div>
+    <div class="form-row"><label class="form-label">申込日</label><input type="date" class="form-input" value="2025-05-14"></div>
+    <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('add-entry')">キャンセル</button><button class="btn-primary" onclick="closeModal('add-entry')">記録する</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-add-result" onclick="if(event.target===this)closeModal('add-result')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">抽選結果を入力</div>
+    <div class="form-row"><label class="form-label">商品名</label><select class="form-select"><option>ポケモンカードゲーム151 再録</option><option>クリムゾンヘイズ</option></select></div>
+    <div class="form-row"><label class="form-label">店舗</label><select class="form-select" id="sel-result-store"></select></div>
+    <div class="form-row"><label class="form-label">結果</label><select class="form-select"><option>当選 🎉</option><option>落選</option></select></div>
+    <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('add-result')">キャンセル</button><button class="btn-primary" onclick="closeModal('add-result')">保存する</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-add-account" onclick="if(event.target===this)closeModal('add-account')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">アカウントを追加</div>
+    <div class="form-row"><label class="form-label">アカウント名</label><input type="text" class="form-input" placeholder="例：サブアカウント2"></div>
+    <div class="form-row"><label class="form-label">メモ</label><input type="text" class="form-input" placeholder="例：ビックカメラ専用"></div>
+    <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('add-account')">キャンセル</button><button class="btn-primary" onclick="closeModal('add-account')">追加する</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-add-store" onclick="if(event.target===this)closeModal('add-store')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">店舗を追加</div>
+    <div class="form-row"><label class="form-label">店舗名</label><input type="text" class="form-input" id="new-store-input" placeholder="例：トイザらス"></div>
+    <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('add-store')">キャンセル</button><button class="btn-primary" onclick="addStore()">追加する</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var stores = [
+  { id:1, name:'ヨドバシカメラ', accounts:1, status:'applied' },
+  { id:2, name:'ビックカメラ',   accounts:2, status:'applied' },
+  { id:3, name:'Amazon',         accounts:1, status:'pending' },
+  { id:4, name:'ポケモンセンター', accounts:2, status:'applied' },
+  { id:5, name:'楽天市場',       accounts:1, status:'none'    }
+];
+
+var history = [
+  { product:'クリムゾンヘイズ',   storeId:1, account:'メイン', result:'won',  date:'5/10' },
+  { product:'クリムゾンヘイズ',   storeId:2, account:'サブ',   result:'lost', date:'5/10' },
+  { product:'クリムゾンヘイズ',   storeId:3, account:'メイン', result:'lost', date:'5/10' },
+  { product:'ポケモンカード151',   storeId:4, account:'メイン', result:'won',  date:'4/22' },
+  { product:'スカーレット ex',     storeId:1, account:'メイン', result:'won',  date:'3/5'  },
+  { product:'スカーレット ex',     storeId:5, account:'メイン', result:'lost', date:'3/5'  }
+];
+
+var editingId = null;
+
+function getStore(id){ return stores.find(function(s){ return s.id===id; }); }
+function getStoreName(id){ var s=getStore(id); return s?s.name:'不明'; }
+
+function render(){
+  renderDashboard(); renderLatestPills(); renderHistory();
+  renderAccounts(); renderSettings(); renderModalSelects();
+}
+
+function renderDashboard(){
+  var statusMap = {
+    applied: ['申込済','badge-applied','dot-applied'],
+    pending: ['結果待ち','badge-pending','dot-pending'],
+    none:    ['未申込','badge-none','dot-none']
+  };
+  document.getElementById('dashboard-store-list').innerHTML = stores.map(function(s){
+    var st = statusMap[s.status]||statusMap.none;
+    return '<div class="store-row"><div><div class="store-name">'+s.name+'</div><div class="store-sub">'+(s.accounts>1?'メイン・サブ':'メイン')+'</div></div><div style="display:flex;align-items:center;gap:6px;"><span class="badge '+st[1]+'">'+st[0]+'</span><div class="status-dot '+st[2]+'"></div></div></div>';
+  }).join('');
+  document.getElementById('stat-applied-count').textContent = stores.filter(function(s){ return s.status==='applied'; }).length;
+}
+
+function renderLatestPills(){
+  document.getElementById('latest-pills').innerHTML = stores.map(function(s){
+    var a = s.status==='applied';
+    return '<span class="box-pill'+(a?' applied':'')+'">'+s.name+(a?' ✓':'')+'</span>';
+  }).join('');
+}
+
+function renderHistory(){
+  document.getElementById('history-list').innerHTML = history.map(function(h,i){
+    var won = h.result==='won';
+    var last = i===history.length-1?'border-bottom:none;':'';
+    return '<div class="history-item" style="'+last+'"><div class="history-icon '+(won?'icon-won':'icon-lost')+'"><i class="ti '+(won?'ti-trophy':'ti-x')+'" style="font-size:18px;"></i></div><div class="history-body"><div class="history-product">'+h.product+'</div><div class="history-store">'+getStoreName(h.storeId)+'・'+h.account+'</div></div><div class="history-right"><span class="badge '+(won?'badge-won':'badge-lost')+'">'+(won?'当選':'落選')+'</span><div class="history-date">'+h.date+'</div></div></div>';
+  }).join('');
+}
+
+function renderAccounts(){
+  document.getElementById('main-stores').textContent = stores.map(function(s){ return s.name; }).join('・');
+  document.getElementById('sub-stores').textContent = stores.filter(function(s){ return s.accounts>1; }).map(function(s){ return s.name; }).join('・')||'—';
+  document.getElementById('accounts-store-list').innerHTML = stores.map(function(s,i){
+    var last = i===stores.length-1?'border-bottom:none;':'';
+    return '<div class="store-row" style="'+last+'"><div><div class="store-name">'+s.name+'</div><div class="store-sub">'+s.accounts+'アカウント利用</div></div><button onclick="showPage(\'settings\',document.querySelectorAll(\'.nav-btn\')[4])" style="font-size:13px;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit;">編集</button></div>';
+  }).join('');
+}
+
+function renderSettings(){
+  document.getElementById('settings-store-list').innerHTML = stores.map(function(s){
+    return '<div class="edit-row" id="erow-'+s.id+'"><div class="edit-row-top"><div><div class="edit-name" id="ename-'+s.id+'">'+s.name+'</div><div class="edit-sub">'+s.accounts+'アカウント利用</div></div><button class="edit-action" id="ebtn-'+s.id+'" onclick="startEdit('+s.id+')"><i class="ti ti-edit" style="font-size:16px;"></i>編集</button></div><div class="inline-edit" id="einline-'+s.id+'"><input class="inline-input" id="einput-'+s.id+'" type="text" value="'+s.name+'" onkeydown="if(event.key===\'Enter\')saveStoreName('+s.id+')"><button class="save-btn" onclick="saveStoreName('+s.id+')">保存</button><button class="cancel-btn" onclick="cancelEdit('+s.id+')">✕</button></div></div>';
+  }).join('');
+}
+
+function renderModalSelects(){
+  ['sel-entry-store','sel-result-store'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.innerHTML=stores.map(function(s){ return '<option>'+s.name+'</option>'; }).join('');
+  });
+}
+
+function startEdit(id){
+  if(editingId!==null && editingId!==id) cancelEdit(editingId);
+  editingId=id;
+  document.getElementById('einline-'+id).classList.add('open');
+  document.getElementById('ebtn-'+id).style.display='none';
+  var inp=document.getElementById('einput-'+id);
+  inp.focus(); inp.select();
+}
+
+function cancelEdit(id){
+  var s=getStore(id); if(!s) return;
+  document.getElementById('einput-'+id).value=s.name;
+  document.getElementById('einline-'+id).classList.remove('open');
+  document.getElementById('ebtn-'+id).style.display='';
+  editingId=null;
+}
+
+function saveStoreName(id){
+  var inp=document.getElementById('einput-'+id);
+  var newName=inp.value.trim();
+  if(!newName){ inp.focus(); return; }
+  var s=getStore(id); if(!s) return;
+  s.name=newName;
+  document.getElementById('einline-'+id).classList.remove('open');
+  document.getElementById('ebtn-'+id).style.display='';
+  editingId=null;
+  render();
+  showToast('"'+newName+'" に変更しました');
+}
+
+function addStore(){
+  var inp=document.getElementById('new-store-input');
+  var name=inp.value.trim();
+  if(!name){ inp.focus(); return; }
+  var newId=stores.length>0?Math.max.apply(null,stores.map(function(s){ return s.id; }))+1:1;
+  stores.push({ id:newId, name:name, accounts:1, status:'none' });
+  inp.value='';
+  closeModal('add-store');
+  render();
+  showToast('"'+name+'" を追加しました');
+}
+
+function showToast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); },2200);
+}
+
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function openModal(id){ document.getElementById('modal-'+id).classList.add('open'); }
+function closeModal(id){ document.getElementById('modal-'+id).classList.remove('open'); }
+
+render();
+</script>
+</body>
+</html>
