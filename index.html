@@ -325,7 +325,7 @@
       <select class="form-select" id="sel-result-store" onchange="toggleCustomStore('result', this.value)"></select>
       <input type="text" class="form-input" id="custom-result-store" placeholder="店舗名を入力" style="display:none;margin-top:6px;">
     </div>
-    <div class="form-row"><label class="form-label">結果</label><select class="form-select"><option>当選 🎉</option><option>落選</option></select></div>
+    <div class="form-row"><label class="form-label">結果</label><select class="form-select" id="sel-result-result"><option value="won">当選 🎉</option><option value="lost">落選</option></select></div>
     <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('add-result')">キャンセル</button><button class="btn-primary" onclick="saveResult()">保存する</button></div>
   </div>
 </div>
@@ -451,23 +451,46 @@ function getSelectedStore(type){
   var sel = document.getElementById('sel-'+type+'-store');
   if(sel.value === '__custom__'){
     var custom = document.getElementById('custom-'+type+'-store').value.trim();
-    if(custom){
-      // まだ存在しない店舗なら追加
-      var exists = stores.find(function(s){ return s.name===custom; });
-      if(!exists){
-        var newId = stores.length>0 ? Math.max.apply(null,stores.map(function(s){ return s.id; }))+1 : 1;
-        stores.push({ id:newId, name:custom, accounts:1, status:'none' });
-        render();
-        showToast('"'+custom+'" を店舗リストに追加しました');
-      }
-      return custom;
-    }
-    return null;
+    return custom || null;
   }
-  return sel.value;
+  return sel.value || null;
 }
 
-function startEdit(id){
+function saveEntry(){
+  var storeName = getSelectedStore('entry');
+  if(!storeName){ showToast('店舗名を入力してください'); return; }
+  // 存在しない店舗なら追加
+  var s = stores.find(function(s){ return s.name===storeName; });
+  if(!s){
+    var newId = stores.length>0 ? Math.max.apply(null,stores.map(function(s){ return s.id; }))+1 : 1;
+    stores.push({ id:newId, name:storeName, accounts:1, status:'applied' });
+  } else {
+    s.status = 'applied';
+  }
+  render();
+  showToast('"'+storeName+'" の申込を記録しました');
+  closeModal('add-entry');
+}
+
+function saveResult(){
+  var storeName = getSelectedStore('result');
+  if(!storeName){ showToast('店舗名を入力してください'); return; }
+  // 存在しない店舗なら追加
+  var s = stores.find(function(st){ return st.name===storeName; });
+  if(!s){
+    var newId = stores.length>0 ? Math.max.apply(null,stores.map(function(s){ return s.id; }))+1 : 1;
+    stores.push({ id:newId, name:storeName, accounts:1, status:'none' });
+    s = stores[stores.length-1];
+  }
+  var product = document.getElementById('sel-result-product').value;
+  var resultSel = document.getElementById('sel-result-result');
+  var won = resultSel ? resultSel.value==='won' : false;
+  var now = new Date();
+  history.unshift({ product:product, storeId:s.id, storeName:storeName, account:'メイン', result:won?'won':'lost', date:(now.getMonth()+1)+'/'+(now.getDate()) });
+  render();
+  showToast('結果を記録しました');
+  closeModal('add-result');
+}
   if(editingId!==null && editingId!==id) cancelEdit(editingId);
   editingId=id;
   document.getElementById('einline-'+id).classList.add('open');
@@ -509,31 +532,6 @@ function addStore(){
   showToast('"'+name+'" を追加しました');
 }
 
-function saveEntry(){
-  var storeName = getSelectedStore('entry');
-  if(!storeName){ showToast('店舗名を入力してください'); return; }
-  // ステータスを申込済に更新
-  var s = stores.find(function(s){ return s.name===storeName; });
-  if(s) s.status = 'applied';
-  render();
-  showToast('申込を記録しました');
-  closeModal('add-entry');
-}
-
-function saveResult(){
-  var storeName = getSelectedStore('result');
-  if(!storeName){ showToast('店舗名を入力してください'); return; }
-  var product = document.getElementById('sel-result-product').value;
-  var resultSel = document.querySelector('#modal-add-result .form-select:last-of-type');
-  var won = resultSel && resultSel.value.includes('当選');
-  var s = stores.find(function(st){ return st.name===storeName; });
-  var storeId = s ? s.id : null;
-  var now = new Date();
-  history.unshift({ product:product, storeId:storeId, storeName:storeName, account:'メイン', result:won?'won':'lost', date:(now.getMonth()+1)+'/'+(now.getDate()) });
-  render();
-  showToast('結果を記録しました');
-  closeModal('add-result');
-}
 function getStore(id){ return stores.find(function(s){ return s.id===id; }); }
 
 function showToast(msg){
