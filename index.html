@@ -426,13 +426,15 @@ function renderSettings(){
 }
 
 function renderModalSelects(){
-  ['sel-entry-store','sel-result-store'].forEach(function(id){
-    var el=document.getElementById(id);
+  ['sel-entry-store','sel-result-store'].forEach(function(selId){
+    var el = document.getElementById(selId);
     if(!el) return;
-    var current = el.value;
-    el.innerHTML = stores.map(function(s){ return '<option value="'+s.name+'">'+s.name+'</option>'; }).join('');
-    el.innerHTML += '<option value="__custom__">その他（直接入力）</option>';
-    if(current) el.value = current;
+    var prev = el.value;
+    el.innerHTML = stores.map(function(s){
+      return '<option value="'+s.name+'">'+s.name+'</option>';
+    }).join('') + '<option value="__custom__">＋ 直接入力する</option>';
+    // 以前の選択を復元（可能なら）
+    if(prev && el.querySelector('option[value="'+prev+'"]')) el.value = prev;
   });
 }
 
