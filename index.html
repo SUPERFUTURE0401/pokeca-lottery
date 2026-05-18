@@ -265,21 +265,18 @@
       <div class="card">
         <div class="section-label">登録アカウント</div>
         <div style="display:flex;flex-direction:column;gap:8px;">
-          <div class="account-row">
-            <div class="account-avatar" style="background:#E6F1FB;color:#0C447C;">メ</div>
-            <div><div style="font-size:14px;font-weight:500;color:var(--text-primary);">メインアカウント</div><div id="main-stores" style="font-size:11px;color:var(--text-secondary);margin-top:2px;"></div></div>
-          </div>
-          <div class="account-row">
-            <div class="account-avatar" style="background:#EAF3DE;color:#27500A;">サ</div>
-            <div><div style="font-size:14px;font-weight:500;color:var(--text-primary);">サブアカウント</div><div id="sub-stores" style="font-size:11px;color:var(--text-secondary);margin-top:2px;"></div></div>
-          </div>
+          <div class="account-row"><div class="account-avatar" style="background:#E6F1FB;color:#0C447C;">1</div><div><div style="font-size:14px;font-weight:500;color:var(--text-primary);">アカウント1</div></div></div>
+          <div class="account-row"><div class="account-avatar" style="background:#EAF3DE;color:#27500A;">2</div><div><div style="font-size:14px;font-weight:500;color:var(--text-primary);">アカウント2</div></div></div>
+          <div class="account-row"><div class="account-avatar" style="background:#FAEEDA;color:#633806;">3</div><div><div style="font-size:14px;font-weight:500;color:var(--text-primary);">アカウント3</div></div></div>
+          <div class="account-row"><div class="account-avatar" style="background:#F1EFE8;color:#5F5E5A;">4</div><div><div style="font-size:14px;font-weight:500;color:var(--text-primary);">アカウント4</div></div></div>
+          <div class="account-row"><div class="account-avatar" style="background:#E8EAF1;color:#2A2E7C;">5</div><div><div style="font-size:14px;font-weight:500;color:var(--text-primary);">アカウント5</div></div></div>
+          <div class="account-row"><div class="account-avatar" style="background:#F1E8F0;color:#7C2A6F;">6</div><div><div style="font-size:14px;font-weight:500;color:var(--text-primary);">アカウント6</div></div></div>
         </div>
       </div>
       <div class="card">
         <div class="section-label">店舗別アカウント設定</div>
         <div id="accounts-store-list"></div>
       </div>
-      <button class="add-btn" onclick="openModal('add-account')"><i class="ti ti-plus"></i> アカウントを追加</button>
     </div>
 
     <!-- Settings -->
@@ -316,7 +313,7 @@
       <label class="form-label">店舗名を入力</label>
       <input type="text" class="form-input" id="input-entry-custom" placeholder="例：トイザらス">
     </div>
-    <div class="form-row"><label class="form-label">アカウント</label><select class="form-select" id="sel-entry-account"><option>メインアカウント</option><option>サブアカウント</option></select></div>
+    <div class="form-row"><label class="form-label">アカウント</label><select class="form-select" id="sel-entry-account"><option>アカウント1</option><option>アカウント2</option><option>アカウント3</option><option>アカウント4</option><option>アカウント5</option><option>アカウント6</option></select></div>
     <div class="form-row"><label class="form-label">申込日</label><input type="date" class="form-input" id="entry-date"></div>
     <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('add-entry')">キャンセル</button><button class="btn-primary" onclick="saveEntry()">記録する</button></div>
   </div>
@@ -459,8 +456,6 @@ function renderHistory(){
 }
 
 function renderAccounts(){
-  document.getElementById('main-stores').textContent = stores.map(function(s){ return s.name; }).join('・');
-  document.getElementById('sub-stores').textContent = stores.filter(function(s){ return s.accounts>1; }).map(function(s){ return s.name; }).join('・')||'—';
   document.getElementById('accounts-store-list').innerHTML = stores.map(function(s,i){
     var last = i===stores.length-1?'border-bottom:none;':'';
     return '<div class="store-row" style="'+last+'"><div><div class="store-name">'+s.name+'</div><div class="store-sub">'+s.accounts+'アカウント利用</div></div><button onclick="showPage(\'settings\',document.querySelectorAll(\'.nav-btn\')[4])" style="font-size:13px;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit;">編集</button></div>';
@@ -531,9 +526,9 @@ function saveEntry(){
   } else {
     s.status = 'applied';
   }
+  closeModal('add-entry');
   render();
   showToast('"'+storeName+'" の申込を記録しました');
-  closeModal('add-entry');
 }
 
 function saveResult(){
