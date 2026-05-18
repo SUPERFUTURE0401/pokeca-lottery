@@ -221,6 +221,17 @@
           <span class="badge badge-won">発売中</span>
         </div>
       </div>
+      <!-- 今後の発売予定 -->
+      <div class="card">
+        <div class="section-label">今後の発売予定</div>
+        <div class="store-row">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <img src="https://www.pokemon-card.com/ex/m5/assets/images/product_pack-fid5o1xq.png" alt="アビスアイ" style="width:40px;height:56px;object-fit:contain;border-radius:4px;background:#E6F1FB;flex-shrink:0;">
+            <div><div class="store-name">アビスアイ</div><div class="store-sub">2026年5月22日発売予定</div></div>
+          </div>
+          <span class="badge badge-pending">まもなく</span>
+        </div>
+      </div>
     </div>
 
     <!-- History -->
@@ -291,7 +302,7 @@
     </div>
     <div class="form-row"><label class="form-label">アカウント</label><select class="form-select"><option>メインアカウント</option><option>サブアカウント</option></select></div>
     <div class="form-row"><label class="form-label">申込日</label><input type="date" class="form-input" id="entry-date"></div>
-    <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('add-entry')">キャンセル</button><button class="btn-primary" onclick="closeModal('add-entry')">記録する</button></div>
+    <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('add-entry')">キャンセル</button><button class="btn-primary" onclick="saveEntry()">記録する</button></div>
   </div>
 </div>
 
@@ -315,7 +326,7 @@
       <input type="text" class="form-input" id="custom-result-store" placeholder="店舗名を入力" style="display:none;margin-top:6px;">
     </div>
     <div class="form-row"><label class="form-label">結果</label><select class="form-select"><option>当選 🎉</option><option>落選</option></select></div>
-    <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('add-result')">キャンセル</button><button class="btn-primary" onclick="closeModal('add-result')">保存する</button></div>
+    <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('add-result')">キャンセル</button><button class="btn-primary" onclick="saveResult()">保存する</button></div>
   </div>
 </div>
 
@@ -360,8 +371,11 @@ var history = [
 
 var editingId = null;
 
-function getStore(id){ return stores.find(function(s){ return s.id===id; }); }
-function getStoreName(id){ var s=getStore(id); return s?s.name:'不明'; }
+function getStoreName(h){ 
+  if(h.storeName) return h.storeName;
+  var s=stores.find(function(s){ return s.id===h.storeId; }); 
+  return s?s.name:'不明'; 
+}
 
 function render(){
   renderDashboard(); renderLatestPills(); renderHistory();
@@ -392,7 +406,7 @@ function renderHistory(){
   document.getElementById('history-list').innerHTML = history.map(function(h,i){
     var won = h.result==='won';
     var last = i===history.length-1?'border-bottom:none;':'';
-    return '<div class="history-item" style="'+last+'"><div class="history-icon '+(won?'icon-won':'icon-lost')+'"><i class="ti '+(won?'ti-trophy':'ti-x')+'" style="font-size:18px;"></i></div><div class="history-body"><div class="history-product">'+h.product+'</div><div class="history-store">'+getStoreName(h.storeId)+'・'+h.account+'</div></div><div class="history-right"><span class="badge '+(won?'badge-won':'badge-lost')+'">'+(won?'当選':'落選')+'</span><div class="history-date">'+h.date+'</div></div></div>';
+    return '<div class="history-item" style="'+last+'"><div class="history-icon '+(won?'icon-won':'icon-lost')+'"><i class="ti '+(won?'ti-trophy':'ti-x')+'" style="font-size:18px;"></i></div><div class="history-body"><div class="history-product">'+h.product+'</div><div class="history-store">'+getStoreName(h)+'・'+h.account+'</div></div><div class="history-right"><span class="badge '+(won?'badge-won':'badge-lost')+'">'+(won?'当選':'落選')+'</span><div class="history-date">'+h.date+'</div></div></div>';
   }).join('');
 }
 
@@ -431,6 +445,26 @@ function toggleCustomStore(type, val){
     customEl.style.display='none';
     customEl.value='';
   }
+}
+
+function getSelectedStore(type){
+  var sel = document.getElementById('sel-'+type+'-store');
+  if(sel.value === '__custom__'){
+    var custom = document.getElementById('custom-'+type+'-store').value.trim();
+    if(custom){
+      // まだ存在しない店舗なら追加
+      var exists = stores.find(function(s){ return s.name===custom; });
+      if(!exists){
+        var newId = stores.length>0 ? Math.max.apply(null,stores.map(function(s){ return s.id; }))+1 : 1;
+        stores.push({ id:newId, name:custom, accounts:1, status:'none' });
+        render();
+        showToast('"'+custom+'" を店舗リストに追加しました');
+      }
+      return custom;
+    }
+    return null;
+  }
+  return sel.value;
 }
 
 function startEdit(id){
@@ -475,7 +509,31 @@ function addStore(){
   showToast('"'+name+'" を追加しました');
 }
 
-function showToast(msg){
+function saveEntry(){
+  var storeName = getSelectedStore('entry');
+  if(!storeName){ showToast('店舗名を入力してください'); return; }
+  // ステータスを申込済に更新
+  var s = stores.find(function(s){ return s.name===storeName; });
+  if(s) s.status = 'applied';
+  render();
+  showToast('申込を記録しました');
+  closeModal('add-entry');
+}
+
+function saveResult(){
+  var storeName = getSelectedStore('result');
+  if(!storeName){ showToast('店舗名を入力してください'); return; }
+  var product = document.getElementById('sel-result-product').value;
+  var resultSel = document.querySelector('#modal-add-result .form-select:last-of-type');
+  var won = resultSel && resultSel.value.includes('当選');
+  var s = stores.find(function(st){ return st.name===storeName; });
+  var storeId = s ? s.id : null;
+  var now = new Date();
+  history.unshift({ product:product, storeId:storeId, storeName:storeName, account:'メイン', result:won?'won':'lost', date:(now.getMonth()+1)+'/'+(now.getDate()) });
+  render();
+  showToast('結果を記録しました');
+  closeModal('add-result');
+}
   var t=document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
   setTimeout(function(){ t.classList.remove('show'); },2200);
