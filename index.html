@@ -377,7 +377,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-var stores = [
+var DEFAULT_STORES = [
   { id:1,  name:'Amazon',          accounts:1, status:'none', fixed:true },
   { id:2,  name:'ポケモンセンター', accounts:1, status:'none', fixed:true },
   { id:3,  name:'トイザらス',       accounts:1, status:'none', fixed:true },
@@ -388,11 +388,48 @@ var stores = [
   { id:8,  name:'Hobby Zone',       accounts:1, status:'none', fixed:true }
 ];
 
-var history = [];
+function saveData(){
+  try {
+    localStorage.setItem('pokeca_stores',       JSON.stringify(stores));
+    localStorage.setItem('pokeca_history',      JSON.stringify(history));
+    localStorage.setItem('pokeca_stats',        JSON.stringify(lotteryStats));
+  } catch(e){}
+}
 
-var lotteryStats = { total: 0, won: 0 };
+function loadData(){
+  try {
+    var savedStores = localStorage.getItem('pokeca_stores');
+    var savedHistory = localStorage.getItem('pokeca_history');
+    var savedStats   = localStorage.getItem('pokeca_stats');
 
-var editingId = null;
+    if(savedStores){
+      var parsed = JSON.parse(savedStores);
+      // fixedな店舗が欠けていれば補完
+      DEFAULT_STORES.forEach(function(def){
+        var exists = parsed.find(function(s){ return s.id === def.id; });
+        if(!exists) parsed.push(def);
+      });
+      stores = parsed;
+    } else {
+      stores = DEFAULT_STORES.map(function(s){ return Object.assign({},s); });
+    }
+
+    if(savedHistory)  history       = JSON.parse(savedHistory);
+    if(savedStats)    lotteryStats  = JSON.parse(savedStats);
+  } catch(e){
+    stores        = DEFAULT_STORES.map(function(s){ return Object.assign({},s); });
+    history       = [];
+    lotteryStats  = { total:0, won:0 };
+  }
+}
+
+var stores        = DEFAULT_STORES.map(function(s){ return Object.assign({},s); });
+var history       = [];
+var lotteryStats  = { total: 0, won: 0 };
+var editingId     = null;
+
+// 起動時にデータ読み込み
+loadData();
 
 function getStoreName(h){ 
   if(h.storeName) return h.storeName;
@@ -403,6 +440,7 @@ function getStoreName(h){
 function render(){
   renderDashboard(); renderLatestPills(); renderHistory();
   renderAccounts(); renderSettings();
+  saveData();
   // モーダルが開いていない時だけセレクトを更新
   if(!document.getElementById('modal-add-entry').classList.contains('open') &&
      !document.getElementById('modal-add-result').classList.contains('open')){
