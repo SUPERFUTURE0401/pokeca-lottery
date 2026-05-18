@@ -635,53 +635,95 @@ function showPage(id,btn){
 
 function openProductDetail(productName){
   document.getElementById('modal-product-title').textContent = productName;
+  renderProductDetail(productName);
+  openModal('product-detail');
+}
+
+function renderProductDetail(productName){
   var related = history.filter(function(h){ return h.product === productName; });
-  var statusMap = {
-    applied: ['申込済','badge-applied'],
-    pending: ['結果待ち','badge-pending'],
-    none:    ['未申込','badge-none']
-  };
   var wonCount  = related.filter(function(h){ return h.result==='won'; }).length;
   var lostCount = related.filter(function(h){ return h.result==='lost'; }).length;
+  var appliedCount = related.length;
+
   var html = '';
-  // 統計サマリー
-  if(related.length > 0){
-    html += '<div style="display:flex;gap:8px;margin-bottom:14px;">'
-      +'<div style="flex:1;background:var(--bg-secondary);border-radius:var(--radius-md);padding:10px;text-align:center;">'
-        +'<div style="font-size:11px;color:var(--text-secondary);">申込数</div>'
-        +'<div style="font-size:22px;font-weight:600;color:var(--text-primary);">'+related.length+'</div>'
-      +'</div>'
-      +'<div style="flex:1;background:#EAF3DE;border-radius:var(--radius-md);padding:10px;text-align:center;">'
-        +'<div style="font-size:11px;color:#27500A;">当選</div>'
-        +'<div style="font-size:22px;font-weight:600;color:#27500A;">'+wonCount+'</div>'
-      +'</div>'
-      +'<div style="flex:1;background:#F1EFE8;border-radius:var(--radius-md);padding:10px;text-align:center;">'
-        +'<div style="font-size:11px;color:#5F5E5A;">落選</div>'
-        +'<div style="font-size:22px;font-weight:600;color:#5F5E5A;">'+lostCount+'</div>'
-      +'</div>'
-    +'</div>';
-  }
-  // 店舗ごとの申込状況
-  html += '<div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">店舗別の状況</div>';
-  var rows = stores.map(function(s){
+
+  // サマリー
+  html += '<div style="display:flex;gap:8px;margin-bottom:16px;">'
+    +'<div style="flex:1;background:var(--bg-secondary);border-radius:var(--radius-md);padding:10px;text-align:center;">'
+      +'<div style="font-size:11px;color:var(--text-secondary);">申込</div>'
+      +'<div style="font-size:22px;font-weight:600;color:var(--text-primary);">'+appliedCount+'</div>'
+    +'</div>'
+    +'<div style="flex:1;background:#EAF3DE;border-radius:var(--radius-md);padding:10px;text-align:center;">'
+      +'<div style="font-size:11px;color:#27500A;">当選</div>'
+      +'<div style="font-size:22px;font-weight:600;color:#27500A;">'+wonCount+'</div>'
+    +'</div>'
+    +'<div style="flex:1;background:#F1EFE8;border-radius:var(--radius-md);padding:10px;text-align:center;">'
+      +'<div style="font-size:11px;color:#5F5E5A;">落選</div>'
+      +'<div style="font-size:22px;font-weight:600;color:#5F5E5A;">'+lostCount+'</div>'
+    +'</div>'
+  +'</div>';
+
+  // 店舗別ボタン行
+  html += '<div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">店舗別の当落を記録</div>';
+
+  html += stores.map(function(s){
     var rec = related.find(function(h){ return getStoreName(h) === s.name; });
-    var badge, label;
-    if(rec){
-      badge = rec.result==='won' ? 'badge-won' : 'badge-lost';
-      label = rec.result==='won' ? '当選 🎉' : '落選';
-    } else {
-      badge = statusMap[s.status][1];
-      label = statusMap[s.status][0];
-    }
-    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid var(--border);">'
-      +'<div style="font-size:14px;color:var(--text-primary);">'+s.name+'</div>'
-      +'<span class="badge '+badge+'">'+label+'</span>'
+    var result = rec ? rec.result : null;
+
+    var wonActive  = result === 'won';
+    var lostActive = result === 'lost';
+
+    var wonStyle  = wonActive
+      ? 'flex:1;padding:8px 0;border-radius:var(--radius-md);border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;background:#639922;color:white;'
+      : 'flex:1;padding:8px 0;border-radius:var(--radius-md);border:0.5px solid #639922;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;background:none;color:#639922;';
+    var lostStyle = lostActive
+      ? 'flex:1;padding:8px 0;border-radius:var(--radius-md);border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;background:#888780;color:white;'
+      : 'flex:1;padding:8px 0;border-radius:var(--radius-md);border:0.5px solid #888780;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;background:none;color:#888780;';
+    var clearStyle = 'padding:8px 10px;border-radius:var(--radius-md);border:0.5px solid var(--border-md);font-size:12px;cursor:pointer;font-family:inherit;background:none;color:var(--text-secondary);';
+
+    return '<div style="padding:10px 0;border-bottom:0.5px solid var(--border);">'
+      +'<div style="font-size:13px;font-weight:500;color:var(--text-primary);margin-bottom:7px;">'+s.name+'</div>'
+      +'<div style="display:flex;gap:6px;">'
+        +'<button style="'+wonStyle+'" onclick="setProductResult(\''+productName+'\',\''+s.name+'\',\'won\')">🎉 当選</button>'
+        +'<button style="'+lostStyle+'" onclick="setProductResult(\''+productName+'\',\''+s.name+'\',\'lost\')">✕ 落選</button>'
+        +(rec ? '<button style="'+clearStyle+'" onclick="setProductResult(\''+productName+'\',\''+s.name+'\',\'clear\')">取消</button>' : '')
+      +'</div>'
     +'</div>';
   }).join('');
-  if(stores.length === 0) rows = '<div style="color:var(--text-secondary);font-size:13px;padding:12px 0;">店舗が登録されていません</div>';
-  html += rows;
+
   document.getElementById('modal-product-body').innerHTML = html;
-  openModal('product-detail');
+}
+
+function setProductResult(productName, storeName, result){
+  var now = new Date();
+  var dateStr = (now.getMonth()+1)+'/'+(now.getDate());
+  var s = stores.find(function(st){ return st.name === storeName; });
+  var storeId = s ? s.id : null;
+
+  if(result === 'clear'){
+    // 該当履歴を削除
+    history = history.filter(function(h){
+      return !(h.product === productName && getStoreName(h) === storeName);
+    });
+  } else {
+    // 既存レコードがあれば更新、なければ追加
+    var existing = history.find(function(h){
+      return h.product === productName && getStoreName(h) === storeName;
+    });
+    if(existing){
+      var oldResult = existing.result;
+      existing.result = result;
+      // 統計更新
+      if(oldResult === 'won' && result === 'lost'){ lotteryStats.won = Math.max(0, lotteryStats.won-1); }
+      if(oldResult === 'lost' && result === 'won'){ lotteryStats.won++; }
+    } else {
+      history.unshift({ product:productName, storeId:storeId, storeName:storeName, account:'—', result:result, date:dateStr });
+      lotteryStats.total++;
+      if(result === 'won') lotteryStats.won++;
+    }
+  }
+  render();
+  renderProductDetail(productName);
 }
 
 function openModal(id){
