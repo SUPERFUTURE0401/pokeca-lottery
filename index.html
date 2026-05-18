@@ -297,10 +297,13 @@
     </div>
     <div class="form-row">
       <label class="form-label">店舗</label>
-      <select class="form-select" id="sel-entry-store" onchange="toggleCustomStore('entry', this.value)"></select>
-      <input type="text" class="form-input" id="custom-entry-store" placeholder="店舗名を入力" style="display:none;margin-top:6px;">
+      <select class="form-select" id="sel-entry-store" onchange="onStoreChange('entry')"></select>
     </div>
-    <div class="form-row"><label class="form-label">アカウント</label><select class="form-select"><option>メインアカウント</option><option>サブアカウント</option></select></div>
+    <div class="form-row" id="row-entry-custom" style="display:none;">
+      <label class="form-label">店舗名を入力</label>
+      <input type="text" class="form-input" id="input-entry-custom" placeholder="例：トイザらス">
+    </div>
+    <div class="form-row"><label class="form-label">アカウント</label><select class="form-select" id="sel-entry-account"><option>メインアカウント</option><option>サブアカウント</option></select></div>
     <div class="form-row"><label class="form-label">申込日</label><input type="date" class="form-input" id="entry-date"></div>
     <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('add-entry')">キャンセル</button><button class="btn-primary" onclick="saveEntry()">記録する</button></div>
   </div>
@@ -322,8 +325,11 @@
     </div>
     <div class="form-row">
       <label class="form-label">店舗</label>
-      <select class="form-select" id="sel-result-store" onchange="toggleCustomStore('result', this.value)"></select>
-      <input type="text" class="form-input" id="custom-result-store" placeholder="店舗名を入力" style="display:none;margin-top:6px;">
+      <select class="form-select" id="sel-result-store" onchange="onStoreChange('result')"></select>
+    </div>
+    <div class="form-row" id="row-result-custom" style="display:none;">
+      <label class="form-label">店舗名を入力</label>
+      <input type="text" class="form-input" id="input-result-custom" placeholder="例：トイザらス">
     </div>
     <div class="form-row"><label class="form-label">結果</label><select class="form-select" id="sel-result-result"><option value="won">当選 🎉</option><option value="lost">落選</option></select></div>
     <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('add-result')">キャンセル</button><button class="btn-primary" onclick="saveResult()">保存する</button></div>
@@ -426,45 +432,45 @@ function renderSettings(){
 }
 
 function renderModalSelects(){
-  ['sel-entry-store','sel-result-store'].forEach(function(selId){
-    var el = document.getElementById(selId);
+  ['entry','result'].forEach(function(type){
+    var el = document.getElementById('sel-'+type+'-store');
     if(!el) return;
-    var prev = el.value;
     el.innerHTML = stores.map(function(s){
       return '<option value="'+s.name+'">'+s.name+'</option>';
     }).join('') + '<option value="__custom__">＋ 直接入力する</option>';
-    // 以前の選択を復元（可能なら）
-    if(prev && el.querySelector('option[value="'+prev+'"]')) el.value = prev;
+    // カスタム入力欄を隠す
+    document.getElementById('row-'+type+'-custom').style.display = 'none';
+    document.getElementById('input-'+type+'-custom').value = '';
   });
 }
 
-function toggleCustomStore(type, val){
-  var customEl = document.getElementById('custom-'+type+'-store');
-  if(val==='__custom__'){
-    customEl.style.display='block';
-    customEl.focus();
+function onStoreChange(type){
+  var sel = document.getElementById('sel-'+type+'-store');
+  var row = document.getElementById('row-'+type+'-custom');
+  var inp = document.getElementById('input-'+type+'-custom');
+  if(sel.value === '__custom__'){
+    row.style.display = 'block';
+    inp.focus();
   } else {
-    customEl.style.display='none';
-    customEl.value='';
+    row.style.display = 'none';
+    inp.value = '';
   }
 }
 
-function getSelectedStore(type){
+function getSelectedStoreName(type){
   var sel = document.getElementById('sel-'+type+'-store');
   if(sel.value === '__custom__'){
-    var custom = document.getElementById('custom-'+type+'-store').value.trim();
-    return custom || null;
+    return document.getElementById('input-'+type+'-custom').value.trim() || null;
   }
   return sel.value || null;
 }
 
 function saveEntry(){
-  var storeName = getSelectedStore('entry');
-  if(!storeName){ showToast('店舗名を入力してください'); return; }
-  // 存在しない店舗なら追加
-  var s = stores.find(function(s){ return s.name===storeName; });
+  var storeName = getSelectedStoreName('entry');
+  if(!storeName){ showToast('店舗を選択または入力してください'); return; }
+  var s = stores.find(function(s){ return s.name === storeName; });
   if(!s){
-    var newId = stores.length>0 ? Math.max.apply(null,stores.map(function(s){ return s.id; }))+1 : 1;
+    var newId = stores.length > 0 ? Math.max.apply(null, stores.map(function(s){ return s.id; })) + 1 : 1;
     stores.push({ id:newId, name:storeName, accounts:1, status:'applied' });
   } else {
     s.status = 'applied';
@@ -475,18 +481,16 @@ function saveEntry(){
 }
 
 function saveResult(){
-  var storeName = getSelectedStore('result');
-  if(!storeName){ showToast('店舗名を入力してください'); return; }
-  // 存在しない店舗なら追加
-  var s = stores.find(function(st){ return st.name===storeName; });
+  var storeName = getSelectedStoreName('result');
+  if(!storeName){ showToast('店舗を選択または入力してください'); return; }
+  var s = stores.find(function(s){ return s.name === storeName; });
   if(!s){
-    var newId = stores.length>0 ? Math.max.apply(null,stores.map(function(s){ return s.id; }))+1 : 1;
+    var newId = stores.length > 0 ? Math.max.apply(null, stores.map(function(s){ return s.id; })) + 1 : 1;
     stores.push({ id:newId, name:storeName, accounts:1, status:'none' });
     s = stores[stores.length-1];
   }
   var product = document.getElementById('sel-result-product').value;
-  var resultSel = document.getElementById('sel-result-result');
-  var won = resultSel ? resultSel.value==='won' : false;
+  var won = document.getElementById('sel-result-result').value === 'won';
   var now = new Date();
   history.unshift({ product:product, storeId:s.id, storeName:storeName, account:'メイン', result:won?'won':'lost', date:(now.getMonth()+1)+'/'+(now.getDate()) });
   render();
