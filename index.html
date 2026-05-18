@@ -385,7 +385,12 @@ function getStoreName(h){
 
 function render(){
   renderDashboard(); renderLatestPills(); renderHistory();
-  renderAccounts(); renderSettings(); renderModalSelects();
+  renderAccounts(); renderSettings();
+  // モーダルが開いていない時だけセレクトを更新
+  if(!document.getElementById('modal-add-entry').classList.contains('open') &&
+     !document.getElementById('modal-add-result').classList.contains('open')){
+    renderModalSelects();
+  }
 }
 
 function renderDashboard(){
@@ -438,9 +443,10 @@ function renderModalSelects(){
     el.innerHTML = stores.map(function(s){
       return '<option value="'+s.name+'">'+s.name+'</option>';
     }).join('') + '<option value="__custom__">＋ 直接入力する</option>';
-    // カスタム入力欄を隠す
-    document.getElementById('row-'+type+'-custom').style.display = 'none';
-    document.getElementById('input-'+type+'-custom').value = '';
+    var row = document.getElementById('row-'+type+'-custom');
+    var inp = document.getElementById('input-'+type+'-custom');
+    if(row) row.style.display = 'none';
+    if(inp) inp.value = '';
   });
 }
 
@@ -555,7 +561,24 @@ function showPage(id,btn){
   btn.classList.add('active');
 }
 
-function openModal(id){ document.getElementById('modal-'+id).classList.add('open'); }
+function openModal(id){
+  document.getElementById('modal-'+id).classList.add('open');
+  // 申込・結果モーダルを開く時だけ店舗セレクトを初期化
+  if(id === 'add-entry' || id === 'add-result'){
+    var type = id === 'add-entry' ? 'entry' : 'result';
+    var sel = document.getElementById('sel-'+type+'-store');
+    if(sel){
+      sel.innerHTML = stores.map(function(s){
+        return '<option value="'+s.name+'">'+s.name+'</option>';
+      }).join('') + '<option value="__custom__">＋ 直接入力する</option>';
+      sel.value = stores.length > 0 ? stores[0].name : '';
+    }
+    var row = document.getElementById('row-'+type+'-custom');
+    var inp = document.getElementById('input-'+type+'-custom');
+    if(row) row.style.display = 'none';
+    if(inp) inp.value = '';
+  }
+}
 function closeModal(id){ document.getElementById('modal-'+id).classList.remove('open'); }
 
 var currentYear = new Date().getFullYear();
