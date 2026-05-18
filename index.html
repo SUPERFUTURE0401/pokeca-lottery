@@ -534,6 +534,9 @@ function saveResult(){
   showToast('結果を記録しました');
   closeModal('add-result');
 }
+function getStore(id){ return stores.find(function(s){ return s.id===id; }); }
+
+function showToast(msg){
   var t=document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
   setTimeout(function(){ t.classList.remove('show'); },2200);
