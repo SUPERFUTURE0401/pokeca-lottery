@@ -205,33 +205,33 @@
       <!-- 発売中 -->
       <div class="card">
         <div class="section-label">発売中（2026年）</div>
-        <div class="store-row">
+        <div class="store-row" onclick="openProductDetail('ハイクラスパック MEGAドリームex')" style="cursor:pointer;">
           <div style="display:flex;align-items:center;gap:10px;">
             <img src="https://www.pokemon-card.com/ex/m2a/assets/images/ogp.png" alt="MEGAドリームex" style="width:40px;height:56px;object-fit:contain;border-radius:4px;background:#E6F1FB;flex-shrink:0;">
             <div><div class="store-name">ハイクラスパック MEGAドリームex</div><div class="store-sub">2026年発売中</div></div>
           </div>
-          <span class="badge badge-won">発売中</span>
+          <span class="badge badge-won">発売中 ›</span>
         </div>
-        <div class="store-row">
+        <div class="store-row" onclick="openProductDetail('ニンジャスピナー')" style="cursor:pointer;">
           <div style="display:flex;align-items:center;gap:10px;">
             <img src="https://www.pokemon-card.com/ex/m4/assets/images/ogp.png" alt="ニンジャスピナー" style="width:40px;height:56px;object-fit:contain;border-radius:4px;background:#E6F1FB;flex-shrink:0;">
             <div><div class="store-name">ニンジャスピナー</div><div class="store-sub">2026年3月13日発売</div></div>
           </div>
-          <span class="badge badge-won">発売中</span>
+          <span class="badge badge-won">発売中 ›</span>
         </div>
-        <div class="store-row">
+        <div class="store-row" onclick="openProductDetail('ムニキスゼロ')" style="cursor:pointer;">
           <div style="display:flex;align-items:center;gap:10px;">
             <img src="https://www.pokemon-card.com/ex/m3/assets/images/ogp.png" alt="ムニキスゼロ" style="width:40px;height:56px;object-fit:contain;border-radius:4px;background:#E6F1FB;flex-shrink:0;">
             <div><div class="store-name">ムニキスゼロ</div><div class="store-sub">2026年1月23日発売</div></div>
           </div>
-          <span class="badge badge-won">発売中</span>
+          <span class="badge badge-won">発売中 ›</span>
         </div>
-        <div class="store-row">
+        <div class="store-row" onclick="openProductDetail('スタートデッキ100バトルコレクション')" style="cursor:pointer;">
           <div style="display:flex;align-items:center;gap:10px;">
             <img src="https://www.pokemon-card.com/ex/mc/assets/images/ogp.png" alt="スタートデッキ100バトルコレクション" style="width:40px;height:56px;object-fit:contain;border-radius:4px;background:#E6F1FB;flex-shrink:0;">
             <div><div class="store-name">スタートデッキ100バトルコレクション</div><div class="store-sub">2025年12月19日発売</div></div>
           </div>
-          <span class="badge badge-won">発売中</span>
+          <span class="badge badge-won">発売中 ›</span>
         </div>
       </div>
       <!-- 今後の発売予定 -->
@@ -359,6 +359,15 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="modal-product-detail" onclick="if(event.target===this)closeModal('product-detail')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-product-title"></div>
+    <div id="modal-product-body" style="max-height:60vh;overflow-y:auto;"></div>
+    <div class="modal-actions" style="margin-top:12px;"><button class="btn-cancel" style="flex:1;" onclick="closeModal('product-detail')">閉じる</button></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-add-store" onclick="if(event.target===this)closeModal('add-store')">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -372,8 +381,13 @@
 
 <script>
 var stores = [
-  { id:3, name:'Amazon',          accounts:1, status:'none' },
-  { id:4, name:'ポケモンセンター', accounts:1, status:'none' }
+  { id:1,  name:'Amazon',          accounts:1, status:'none', fixed:true },
+  { id:2,  name:'ポケモンセンター', accounts:1, status:'none', fixed:true },
+  { id:3,  name:'トイザらス',       accounts:1, status:'none', fixed:true },
+  { id:4,  name:'GEO',              accounts:1, status:'none', fixed:true },
+  { id:5,  name:'ふるいち',         accounts:1, status:'none', fixed:true },
+  { id:6,  name:'イオン',           accounts:1, status:'none', fixed:true },
+  { id:7,  name:'Joshin',           accounts:1, status:'none', fixed:true }
 ];
 
 var history = [];
@@ -600,6 +614,8 @@ function resetStats(){
 }
 
 function deleteStore(id){
+  var s = stores.find(function(s){ return s.id===id; });
+  if(s && s.fixed){ showToast('この店舗は削除できません'); return; }
   if(!confirm('この店舗を削除しますか？')) return;
   stores = stores.filter(function(s){ return s.id !== id; });
   render();
@@ -619,6 +635,57 @@ function showPage(id,btn){
   document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
   document.getElementById('page-'+id).classList.add('active');
   btn.classList.add('active');
+}
+
+function openProductDetail(productName){
+  document.getElementById('modal-product-title').textContent = productName;
+  var related = history.filter(function(h){ return h.product === productName; });
+  var statusMap = {
+    applied: ['申込済','badge-applied'],
+    pending: ['結果待ち','badge-pending'],
+    none:    ['未申込','badge-none']
+  };
+  var wonCount  = related.filter(function(h){ return h.result==='won'; }).length;
+  var lostCount = related.filter(function(h){ return h.result==='lost'; }).length;
+  var html = '';
+  // 統計サマリー
+  if(related.length > 0){
+    html += '<div style="display:flex;gap:8px;margin-bottom:14px;">'
+      +'<div style="flex:1;background:var(--bg-secondary);border-radius:var(--radius-md);padding:10px;text-align:center;">'
+        +'<div style="font-size:11px;color:var(--text-secondary);">申込数</div>'
+        +'<div style="font-size:22px;font-weight:600;color:var(--text-primary);">'+related.length+'</div>'
+      +'</div>'
+      +'<div style="flex:1;background:#EAF3DE;border-radius:var(--radius-md);padding:10px;text-align:center;">'
+        +'<div style="font-size:11px;color:#27500A;">当選</div>'
+        +'<div style="font-size:22px;font-weight:600;color:#27500A;">'+wonCount+'</div>'
+      +'</div>'
+      +'<div style="flex:1;background:#F1EFE8;border-radius:var(--radius-md);padding:10px;text-align:center;">'
+        +'<div style="font-size:11px;color:#5F5E5A;">落選</div>'
+        +'<div style="font-size:22px;font-weight:600;color:#5F5E5A;">'+lostCount+'</div>'
+      +'</div>'
+    +'</div>';
+  }
+  // 店舗ごとの申込状況
+  html += '<div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">店舗別の状況</div>';
+  var rows = stores.map(function(s){
+    var rec = related.find(function(h){ return getStoreName(h) === s.name; });
+    var badge, label;
+    if(rec){
+      badge = rec.result==='won' ? 'badge-won' : 'badge-lost';
+      label = rec.result==='won' ? '当選 🎉' : '落選';
+    } else {
+      badge = statusMap[s.status][1];
+      label = statusMap[s.status][0];
+    }
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:0.5px solid var(--border);">'
+      +'<div style="font-size:14px;color:var(--text-primary);">'+s.name+'</div>'
+      +'<span class="badge '+badge+'">'+label+'</span>'
+    +'</div>';
+  }).join('');
+  if(stores.length === 0) rows = '<div style="color:var(--text-secondary);font-size:13px;padding:12px 0;">店舗が登録されていません</div>';
+  html += rows;
+  document.getElementById('modal-product-body').innerHTML = html;
+  openModal('product-detail');
 }
 
 function openModal(id){
