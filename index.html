@@ -176,6 +176,7 @@
 
     <!-- Latest BOX -->
     <div class="page" id="page-latest">
+      <!-- まもなく発売 -->
       <div class="card" style="border-color:#B5D4F4;">
         <div style="font-size:11px;font-weight:600;color:#0C447C;margin-bottom:10px;">🔥 まもなく発売</div>
         <div style="display:flex;gap:12px;align-items:flex-start;">
@@ -188,6 +189,7 @@
           </div>
         </div>
       </div>
+      <!-- 発売中 -->
       <div class="card">
         <div class="section-label">発売中（2026年）</div>
         <div class="store-row">
@@ -272,10 +274,23 @@
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">申込を記録する</div>
-    <div class="form-row"><label class="form-label">商品名</label><select class="form-select"><option>ポケモンカードゲーム151 再録</option><option>クリムゾンヘイズ</option><option>ステラミラクル</option></select></div>
-    <div class="form-row"><label class="form-label">店舗</label><select class="form-select" id="sel-entry-store"></select></div>
+    <div class="form-row">
+      <label class="form-label">商品名</label>
+      <select class="form-select" id="sel-entry-product">
+        <option>アビスアイ</option>
+        <option>ハイクラスパック MEGAドリームex</option>
+        <option>ニンジャスピナー</option>
+        <option>ムニキスゼロ</option>
+        <option>スタートデッキ100バトルコレクション</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label class="form-label">店舗</label>
+      <select class="form-select" id="sel-entry-store" onchange="toggleCustomStore('entry', this.value)"></select>
+      <input type="text" class="form-input" id="custom-entry-store" placeholder="店舗名を入力" style="display:none;margin-top:6px;">
+    </div>
     <div class="form-row"><label class="form-label">アカウント</label><select class="form-select"><option>メインアカウント</option><option>サブアカウント</option></select></div>
-    <div class="form-row"><label class="form-label">申込日</label><input type="date" class="form-input" value="2025-05-14"></div>
+    <div class="form-row"><label class="form-label">申込日</label><input type="date" class="form-input" id="entry-date"></div>
     <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('add-entry')">キャンセル</button><button class="btn-primary" onclick="closeModal('add-entry')">記録する</button></div>
   </div>
 </div>
@@ -284,8 +299,21 @@
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">抽選結果を入力</div>
-    <div class="form-row"><label class="form-label">商品名</label><select class="form-select"><option>ポケモンカードゲーム151 再録</option><option>クリムゾンヘイズ</option></select></div>
-    <div class="form-row"><label class="form-label">店舗</label><select class="form-select" id="sel-result-store"></select></div>
+    <div class="form-row">
+      <label class="form-label">商品名</label>
+      <select class="form-select" id="sel-result-product">
+        <option>アビスアイ</option>
+        <option>ハイクラスパック MEGAドリームex</option>
+        <option>ニンジャスピナー</option>
+        <option>ムニキスゼロ</option>
+        <option>スタートデッキ100バトルコレクション</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label class="form-label">店舗</label>
+      <select class="form-select" id="sel-result-store" onchange="toggleCustomStore('result', this.value)"></select>
+      <input type="text" class="form-input" id="custom-result-store" placeholder="店舗名を入力" style="display:none;margin-top:6px;">
+    </div>
     <div class="form-row"><label class="form-label">結果</label><select class="form-select"><option>当選 🎉</option><option>落選</option></select></div>
     <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('add-result')">キャンセル</button><button class="btn-primary" onclick="closeModal('add-result')">保存する</button></div>
   </div>
@@ -386,8 +414,23 @@ function renderSettings(){
 function renderModalSelects(){
   ['sel-entry-store','sel-result-store'].forEach(function(id){
     var el=document.getElementById(id);
-    if(el) el.innerHTML=stores.map(function(s){ return '<option>'+s.name+'</option>'; }).join('');
+    if(!el) return;
+    var current = el.value;
+    el.innerHTML = stores.map(function(s){ return '<option value="'+s.name+'">'+s.name+'</option>'; }).join('');
+    el.innerHTML += '<option value="__custom__">その他（直接入力）</option>';
+    if(current) el.value = current;
   });
+}
+
+function toggleCustomStore(type, val){
+  var customEl = document.getElementById('custom-'+type+'-store');
+  if(val==='__custom__'){
+    customEl.style.display='block';
+    customEl.focus();
+  } else {
+    customEl.style.display='none';
+    customEl.value='';
+  }
 }
 
 function startEdit(id){
@@ -457,6 +500,9 @@ document.getElementById('stat-year-sub1').textContent = currentYear + '年';
 document.getElementById('stat-year-sub2').textContent = currentYear + '年';
 document.getElementById('hist-year-sub1').textContent = currentYear + '年合計';
 document.getElementById('hist-year-sub2').textContent = currentYear + '年合計';
+// 今日の日付を申込日のデフォルトに
+var todayStr = currentYear + '-' + String(month).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+document.getElementById('entry-date').value = todayStr;
 render();
 </script>
 </body>
