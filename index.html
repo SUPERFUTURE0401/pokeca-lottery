@@ -388,17 +388,23 @@ var DEFAULT_STORES = [
   { id:8,  name:'Hobby Zone',       accounts:1, status:'none', fixed:true }
 ];
 
+// 先に変数を宣言
+var stores        = DEFAULT_STORES.map(function(s){ return Object.assign({},s); });
+var history       = [];
+var lotteryStats  = { total: 0, won: 0 };
+var editingId     = null;
+
 function saveData(){
   try {
-    localStorage.setItem('pokeca_stores',       JSON.stringify(stores));
-    localStorage.setItem('pokeca_history',      JSON.stringify(history));
-    localStorage.setItem('pokeca_stats',        JSON.stringify(lotteryStats));
-  } catch(e){}
+    localStorage.setItem('pokeca_stores',  JSON.stringify(stores));
+    localStorage.setItem('pokeca_history', JSON.stringify(history));
+    localStorage.setItem('pokeca_stats',   JSON.stringify(lotteryStats));
+  } catch(e){ console.warn('saveData error', e); }
 }
 
 function loadData(){
   try {
-    var savedStores = localStorage.getItem('pokeca_stores');
+    var savedStores  = localStorage.getItem('pokeca_stores');
     var savedHistory = localStorage.getItem('pokeca_history');
     var savedStats   = localStorage.getItem('pokeca_stats');
 
@@ -410,25 +416,15 @@ function loadData(){
         if(!exists) parsed.push(def);
       });
       stores = parsed;
-    } else {
-      stores = DEFAULT_STORES.map(function(s){ return Object.assign({},s); });
     }
-
-    if(savedHistory)  history       = JSON.parse(savedHistory);
-    if(savedStats)    lotteryStats  = JSON.parse(savedStats);
+    if(savedHistory) history      = JSON.parse(savedHistory);
+    if(savedStats)   lotteryStats = JSON.parse(savedStats);
   } catch(e){
-    stores        = DEFAULT_STORES.map(function(s){ return Object.assign({},s); });
-    history       = [];
-    lotteryStats  = { total:0, won:0 };
+    console.warn('loadData error', e);
   }
 }
 
-var stores        = DEFAULT_STORES.map(function(s){ return Object.assign({},s); });
-var history       = [];
-var lotteryStats  = { total: 0, won: 0 };
-var editingId     = null;
-
-// 起動時にデータ読み込み
+// 起動時にデータ読み込み（変数宣言後に実行）
 loadData();
 
 function getStoreName(h){ 
