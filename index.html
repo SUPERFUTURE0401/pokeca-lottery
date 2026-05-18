@@ -493,6 +493,8 @@ function saveResult(){
   showToast('結果を記録しました');
   closeModal('add-result');
 }
+
+function startEdit(id){
   if(editingId!==null && editingId!==id) cancelEdit(editingId);
   editingId=id;
   document.getElementById('einline-'+id).classList.add('open');
