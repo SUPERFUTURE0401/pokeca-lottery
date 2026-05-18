@@ -152,9 +152,12 @@
     <!-- Dashboard -->
     <div class="page active" id="page-dashboard">
       <div class="deadline-bar">
-        <div class="deadline-left">
-          <div class="label">今後の発売予定</div>
-          <div class="name">アビスアイ</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <img src="https://www.pokemon-card.com/ex/m5/assets/images/product_pack-fid5o1xq.png" alt="アビスアイ" style="width:36px;height:50px;object-fit:contain;border-radius:4px;flex-shrink:0;">
+          <div class="deadline-left">
+            <div class="label">今後の発売予定</div>
+            <div class="name">アビスアイ</div>
+          </div>
         </div>
         <div class="deadline-right">
           <div class="days">まもなく</div>
@@ -168,7 +171,10 @@
         <div class="stat-card"><div class="stat-label">総当選数</div><div class="stat-value">4</div><div class="stat-sub" id="stat-year-sub2"></div></div>
       </div>
       <div class="card">
-        <div class="section-label">現在の申込状況</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div class="section-label" style="margin-bottom:0;">現在の申込状況</div>
+          <button onclick="resetAllStatus()" style="font-size:11px;color:#c0392b;background:none;border:0.5px solid #c0392b;border-radius:99px;padding:3px 10px;cursor:pointer;font-family:inherit;">リセット</button>
+        </div>
         <div id="dashboard-store-list"></div>
         <button class="add-btn" onclick="openModal('add-entry')"><i class="ti ti-plus"></i> 店舗を追加</button>
       </div>
@@ -544,6 +550,13 @@ function addStore(){
   closeModal('add-store');
   render();
   showToast('"'+name+'" を追加しました');
+}
+
+function resetAllStatus(){
+  if(!confirm('全店舗の申込状況を「未申込」にリセットしますか？')) return;
+  stores.forEach(function(s){ s.status = 'none'; });
+  render();
+  showToast('申込状況をリセットしました');
 }
 
 function getStore(id){ return stores.find(function(s){ return s.id===id; }); }
