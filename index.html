@@ -732,6 +732,8 @@ function setProductResult(productName, storeName, result){
   var storeId = s ? s.id : null;
   if(result === 'clear'){
     history = history.filter(function(h){ return !(h.product===productName && getStoreName(h)===storeName); });
+    saveData(); render();
+    renderProductDetail(productName);
   } else {
     var existing = history.find(function(h){ return h.product===productName && getStoreName(h)===storeName; });
     if(existing){
@@ -743,9 +745,11 @@ function setProductResult(productName, storeName, result){
       lotteryStats.total++;
       if(result==='won') lotteryStats.won++;
     }
+    saveData(); render();
+    // 当選・落選選択後はモーダルを閉じてトーストを表示
+    closeModal('product-detail');
+    showToast((result==='won' ? '🎉 当選' : '落選') + 'を記録しました（'+storeName+'）');
   }
-  saveData(); render();
-  renderProductDetail(productName);
 }
 
 // ============================================================
