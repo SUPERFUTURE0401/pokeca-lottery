@@ -394,19 +394,23 @@ var history       = [];
 var lotteryStats  = { total: 0, won: 0 };
 var editingId     = null;
 
+var SAVE_KEY_STORES  = 'pokeca_v2_stores';
+var SAVE_KEY_HISTORY = 'pokeca_v2_history';
+var SAVE_KEY_STATS   = 'pokeca_v2_stats';
+
 function saveData(){
   try {
-    localStorage.setItem('pokeca_stores',  JSON.stringify(stores));
-    localStorage.setItem('pokeca_history', JSON.stringify(history));
-    localStorage.setItem('pokeca_stats',   JSON.stringify(lotteryStats));
+    localStorage.setItem(SAVE_KEY_STORES,  JSON.stringify(stores));
+    localStorage.setItem(SAVE_KEY_HISTORY, JSON.stringify(history));
+    localStorage.setItem(SAVE_KEY_STATS,   JSON.stringify(lotteryStats));
   } catch(e){ console.warn('saveData error', e); }
 }
 
 function loadData(){
   try {
-    var savedStores  = localStorage.getItem('pokeca_stores');
-    var savedHistory = localStorage.getItem('pokeca_history');
-    var savedStats   = localStorage.getItem('pokeca_stats');
+    var savedStores  = localStorage.getItem(SAVE_KEY_STORES);
+    var savedHistory = localStorage.getItem(SAVE_KEY_HISTORY);
+    var savedStats   = localStorage.getItem(SAVE_KEY_STATS);
 
     if(savedStores){
       var parsed = JSON.parse(savedStores);
@@ -436,7 +440,6 @@ function getStoreName(h){
 function render(){
   renderDashboard(); renderLatestPills(); renderHistory();
   renderAccounts(); renderSettings();
-  saveData();
   // モーダルが開いていない時だけセレクトを更新
   if(!document.getElementById('modal-add-entry').classList.contains('open') &&
      !document.getElementById('modal-add-result').classList.contains('open')){
@@ -563,6 +566,7 @@ function saveEntry(){
   }
   closeModal('add-entry');
   render();
+  saveData();
   showToast('"'+storeName+'" の申込を記録しました');
 }
 
@@ -582,6 +586,7 @@ function saveResult(){
   lotteryStats.total++;
   if(won) lotteryStats.won++;
   render();
+  saveData();
   showToast('結果を記録しました');
   closeModal('add-result');
 }
@@ -632,6 +637,7 @@ function resetAllStatus(){
   if(!confirm('全店舗の申込状況を「未申込」にリセットしますか？')) return;
   stores.forEach(function(s){ s.status = 'none'; });
   render();
+  saveData();
   showToast('申込状況をリセットしました');
 }
 
@@ -640,6 +646,7 @@ function resetStats(){
   lotteryStats.total = 0;
   lotteryStats.won = 0;
   render();
+  saveData();
   showToast('統計をリセットしました');
 }
 
@@ -649,6 +656,7 @@ function deleteStore(id){
   if(!confirm('この店舗を削除しますか？')) return;
   stores = stores.filter(function(s){ return s.id !== id; });
   render();
+  saveData();
   showToast('店舗を削除しました');
 }
 
