@@ -334,13 +334,10 @@
       </select>
     </div>
     <div class="form-row">
-      <label class="form-label">店舗</label>
-      <select class="form-select" id="sel-result-store" onchange="onStoreChange('result')"></select>
+      <label class="form-label">店舗 <span style="font-size:10px;color:var(--text-secondary);font-weight:400;">（申込済みのみ表示）</span></label>
+      <select class="form-select" id="sel-result-store"></select>
     </div>
-    <div class="form-row" id="row-result-custom" style="display:none;">
-      <label class="form-label">店舗名を入力</label>
-      <input type="text" class="form-input" id="input-result-custom" placeholder="例：トイザらス">
-    </div>
+    <div id="no-applied-msg" style="display:none;font-size:13px;color:var(--text-secondary);padding:8px 0;">申込済みの店舗がありません。先に申込を記録してください。</div>
     <div class="form-row"><label class="form-label">結果</label><select class="form-select" id="sel-result-result"><option value="won">当選 🎉</option><option value="lost">落選</option></select></div>
     <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('add-result')">キャンセル</button><button class="btn-primary" onclick="saveResult()">保存する</button></div>
   </div>
@@ -599,8 +596,9 @@ function saveEntry(){
 }
 
 function saveResult(){
-  var storeName = getSelectedStoreName('result');
-  if(!storeName){ showToast('店舗を選択または入力してください'); return; }
+  var sel = document.getElementById('sel-result-store');
+  var storeName = sel ? sel.value : null;
+  if(!storeName){ showToast('申込済みの店舗がありません'); return; }
   var s = stores.find(function(s){ return s.name===storeName; });
   if(!s){
     var newId = stores.length>0 ? Math.max.apply(null,stores.map(function(s){ return s.id; }))+1 : 1;
@@ -608,10 +606,9 @@ function saveResult(){
     s = stores[stores.length-1];
   }
   var product = document.getElementById('sel-result-product').value;
-  var account = document.getElementById('sel-entry-account') ? document.getElementById('sel-entry-account').value : 'アカウント1';
   var won     = document.getElementById('sel-result-result').value === 'won';
   var now     = new Date();
-  history.unshift({ product:product, storeId:s.id, storeName:storeName, account:account, result:won?'won':'lost', date:(now.getMonth()+1)+'/'+(now.getDate()) });
+  history.unshift({ product:product, storeId:s.id, storeName:storeName, account:'アカウント1', result:won?'won':'lost', date:(now.getMonth()+1)+'/'+(now.getDate()) });
   lotteryStats.total++;
   if(won) lotteryStats.won++;
   saveData();
@@ -769,18 +766,34 @@ function showPage(id, btn){
 
 function openModal(id){
   document.getElementById('modal-'+id).classList.add('open');
-  if(id==='add-entry' || id==='add-result'){
-    var type = id==='add-entry' ? 'entry' : 'result';
-    var sel  = document.getElementById('sel-'+type+'-store');
+  if(id === 'add-entry'){
+    var sel = document.getElementById('sel-entry-store');
     if(sel){
       sel.innerHTML = stores.map(function(s){ return '<option value="'+s.name+'">'+s.name+'</option>'; }).join('')
                     + '<option value="__custom__">＋ 直接入力する</option>';
       sel.value = stores.length>0 ? stores[0].name : '';
     }
-    var row = document.getElementById('row-'+type+'-custom');
-    var inp = document.getElementById('input-'+type+'-custom');
+    var row = document.getElementById('row-entry-custom');
+    var inp = document.getElementById('input-entry-custom');
     if(row) row.style.display = 'none';
     if(inp) inp.value = '';
+  }
+  if(id === 'add-result'){
+    var applied = stores.filter(function(s){ return s.status === 'applied'; });
+    var sel     = document.getElementById('sel-result-store');
+    var msg     = document.getElementById('no-applied-msg');
+    var btn     = document.querySelector('#modal-add-result .btn-primary');
+    if(applied.length > 0){
+      sel.innerHTML = applied.map(function(s){ return '<option value="'+s.name+'">'+s.name+'</option>'; }).join('');
+      sel.style.display = '';
+      if(msg) msg.style.display = 'none';
+      if(btn) btn.disabled = false;
+    } else {
+      sel.innerHTML = '';
+      sel.style.display = 'none';
+      if(msg) msg.style.display = 'block';
+      if(btn) btn.disabled = true;
+    }
   }
 }
 
