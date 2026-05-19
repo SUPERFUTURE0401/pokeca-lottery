@@ -730,26 +730,40 @@ function setProductResult(productName, storeName, result){
   var dateStr = (now.getMonth()+1)+'/'+(now.getDate());
   var s = stores.find(function(st){ return st.name===storeName; });
   var storeId = s ? s.id : null;
+
   if(result === 'clear'){
-    history = history.filter(function(h){ return !(h.product===productName && getStoreName(h)===storeName); });
-    saveData(); render();
+    history = history.filter(function(h){
+      return !(h.product===productName && getStoreName(h)===storeName);
+    });
+    saveData();
+    render();
     renderProductDetail(productName);
-  } else {
-    var existing = history.find(function(h){ return h.product===productName && getStoreName(h)===storeName; });
-    if(existing){
-      if(existing.result==='won'  && result==='lost') lotteryStats.won = Math.max(0,lotteryStats.won-1);
-      if(existing.result==='lost' && result==='won')  lotteryStats.won++;
-      existing.result = result;
-    } else {
-      history.unshift({ product:productName, storeId:storeId, storeName:storeName, account:'—', result:result, date:dateStr });
-      lotteryStats.total++;
-      if(result==='won') lotteryStats.won++;
-    }
-    saveData(); render();
-    // 当選・落選選択後はモーダルを閉じてトーストを表示
-    closeModal('product-detail');
-    showToast((result==='won' ? '🎉 当選' : '落選') + 'を記録しました（'+storeName+'）');
+    return;
   }
+
+  // 既存レコードの更新
+  var existing = history.find(function(h){
+    return h.product===productName && getStoreName(h)===storeName;
+  });
+  if(existing){
+    if(existing.result==='won'  && result==='lost') lotteryStats.won = Math.max(0, lotteryStats.won-1);
+    if(existing.result==='lost' && result==='won')  lotteryStats.won++;
+    existing.result = result;
+  } else {
+    history.unshift({
+      product:productName, storeId:storeId, storeName:storeName,
+      account:'—', result:result, date:dateStr
+    });
+    lotteryStats.total++;
+    if(result==='won') lotteryStats.won++;
+  }
+
+  // 先にモーダルを閉じる
+  closeModal('product-detail');
+  // データ保存・画面更新
+  saveData();
+  render();
+  showToast((result==='won' ? '🎉 当選' : '落選') + 'を記録しました（'+storeName+'）');
 }
 
 // ============================================================
