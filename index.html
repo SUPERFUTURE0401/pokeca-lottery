@@ -410,10 +410,10 @@ function loadData(){
 
     if(savedStores){
       var parsed = JSON.parse(savedStores);
-      // fixedな店舗が欠けていれば補完
+      // fixedな店舗が欠けていれば追加（存在する店舗のstatusは上書きしない）
       DEFAULT_STORES.forEach(function(def){
         var exists = parsed.find(function(s){ return s.id === def.id; });
-        if(!exists) parsed.push(def);
+        if(!exists) parsed.push(Object.assign({}, def));
       });
       stores = parsed;
     }
