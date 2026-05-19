@@ -394,6 +394,7 @@ var history       = [];
 var lotteryStats  = { total: 0, won: 0 };
 var editingId     = null;
 
+// キー名を先に定義（saveData/loadDataより前）
 var SAVE_KEY_STORES  = 'pokeca_v2_stores';
 var SAVE_KEY_HISTORY = 'pokeca_v2_history';
 var SAVE_KEY_STATS   = 'pokeca_v2_stats';
@@ -408,6 +409,16 @@ function saveData(){
 
 function loadData(){
   try {
+    // 旧キーからの移行
+    var oldStores  = localStorage.getItem('pokeca_stores');
+    var oldHistory = localStorage.getItem('pokeca_history');
+    var oldStats   = localStorage.getItem('pokeca_stats');
+    if(oldStores && !localStorage.getItem(SAVE_KEY_STORES)){
+      localStorage.setItem(SAVE_KEY_STORES,  oldStores);
+      localStorage.setItem(SAVE_KEY_HISTORY, oldHistory || '[]');
+      localStorage.setItem(SAVE_KEY_STATS,   oldStats   || '{"total":0,"won":0}');
+    }
+
     var savedStores  = localStorage.getItem(SAVE_KEY_STORES);
     var savedHistory = localStorage.getItem(SAVE_KEY_HISTORY);
     var savedStats   = localStorage.getItem(SAVE_KEY_STATS);
@@ -618,6 +629,7 @@ function saveStoreName(id){
   document.getElementById('ebtn-'+id).style.display='';
   editingId=null;
   render();
+  saveData();
   showToast('"'+newName+'" に変更しました');
 }
 
@@ -630,6 +642,7 @@ function addStore(){
   inp.value='';
   closeModal('add-store');
   render();
+  saveData();
   showToast('"'+name+'" を追加しました');
 }
 
@@ -765,6 +778,7 @@ function setProductResult(productName, storeName, result){
     }
   }
   render();
+  saveData();
   renderProductDetail(productName);
 }
 
