@@ -488,20 +488,28 @@ function renderDashboard(){
     return '<div class="store-row"><div><div class="store-name">'+s.name+'</div><div class="store-sub">'+(s.accounts>1?'メイン・サブ':'メイン')+'</div></div><div style="display:flex;align-items:center;gap:6px;"><span class="badge '+st[1]+'">'+st[0]+'</span><div class="status-dot '+st[2]+'"></div></div></div>';
   }).join('');
   document.getElementById('stat-applied-count').textContent = stores.filter(function(s){ return s.status==='applied'; }).length;
-  document.getElementById('stat-total').textContent = lotteryStats.total;
-  document.getElementById('stat-won').textContent   = lotteryStats.won;
-  if(lotteryStats.total > 0){
-    var rate = Math.round(lotteryStats.won / lotteryStats.total * 100);
-    document.getElementById('stat-winrate').innerHTML = rate+'<span style="font-size:14px">%</span>';
-    document.getElementById('stat-winrate-sub').textContent = lotteryStats.won+'/'+lotteryStats.total+' 当選';
+
+  // historyから直接計算（lotteryStatsと同期）
+  var totalCount = lotteryStats.total;
+  var wonCount   = lotteryStats.won;
+  document.getElementById('stat-total').textContent = totalCount;
+  document.getElementById('stat-won').textContent   = wonCount;
+  if(totalCount > 0){
+    var rate = Math.round(wonCount / totalCount * 100);
+    document.getElementById('stat-winrate').innerHTML    = rate+'<span style="font-size:14px">%</span>';
+    document.getElementById('stat-winrate-sub').textContent = wonCount+'/'+totalCount+' 当選';
   } else {
     document.getElementById('stat-winrate').textContent     = '—';
     document.getElementById('stat-winrate-sub').textContent = '記録なし';
   }
+
+  // 履歴タブの集計もhistoryから直接計算
+  var hWon  = history.filter(function(h){ return h.result==='won';  }).length;
+  var hLost = history.filter(function(h){ return h.result==='lost'; }).length;
   var hwon  = document.getElementById('hist-won-count');
   var hlost = document.getElementById('hist-lost-count');
-  if(hwon)  hwon.textContent  = history.filter(function(h){ return h.result==='won';  }).length;
-  if(hlost) hlost.textContent = history.filter(function(h){ return h.result==='lost'; }).length;
+  if(hwon)  hwon.textContent  = hWon;
+  if(hlost) hlost.textContent = hLost;
 }
 
 function renderLatestPills(){
@@ -611,10 +619,11 @@ function saveResult(){
   history.unshift({ product:product, storeId:s.id, storeName:storeName, account:'アカウント1', result:won?'won':'lost', date:(now.getMonth()+1)+'/'+(now.getDate()) });
   lotteryStats.total++;
   if(won) lotteryStats.won++;
+  // 先にモーダルを閉じてから保存・描画
+  closeModal('add-result');
   saveData();
   render();
   showToast('結果を記録しました');
-  closeModal('add-result');
 }
 
 // ============================================================
