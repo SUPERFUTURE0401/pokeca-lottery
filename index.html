@@ -599,25 +599,27 @@ function saveEntry(){
 // ============================================================
 function saveResult(){
   var sel = document.getElementById('sel-result-store');
-  var sName = sel.value;
+  var sName = sel ? sel.value : '';
   if(!sName){ showToast('店舗を選択してください'); return; }
   var product = document.getElementById('sel-result-product').value;
-  var won     = document.getElementById('sel-result-result').value==='won';
-  var now     = new Date();
-  var date    = (now.getMonth()+1)+'/'+(now.getDate());
+  var resultVal = document.getElementById('sel-result-result').value;
+  var won = resultVal === 'won';
+  var now = new Date();
+  var date = (now.getMonth()+1)+'/'+(now.getDate());
   var s = stores.find(function(s){ return s.name===sName; });
-  history.unshift({
+  var newRecord = {
     product:  product,
     storeId:  s ? s.id : null,
     storeName:sName,
     account:  'アカウント1',
     result:   won ? 'won' : 'lost',
     date:     date
-  });
+  };
+  history.unshift(newRecord);
   saveData();
   closeModal('add-result');
   render();
-  showToast((won?'🎉 当選':'落選')+'を記録しました');
+  showToast((won?'🎉 当選 '+history.filter(function(h){return h.result==='won';}).length+'件':'落選')+'を記録しました');
 }
 
 // ============================================================
