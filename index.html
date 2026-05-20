@@ -594,10 +594,11 @@ function saveResult(){
   var won     = document.getElementById('sel-result-result').value === 'won';
   var now     = new Date();
   history.unshift({ product:product, storeId:s.id, storeName:storeName, account:'アカウント1', result:won?'won':'lost', date:(now.getMonth()+1)+'/'+(now.getDate()) });
-  closeModal('add-result');
   saveData();
   render();
   showToast('結果を記録しました');
+  // 最後にモーダルを閉じる
+  document.getElementById('modal-add-result').classList.remove('open');
 }
 
 // ============================================================
