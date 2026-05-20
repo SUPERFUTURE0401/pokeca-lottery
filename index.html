@@ -394,90 +394,28 @@ var lotteryStats = { total:0, won:0 };
 var editingId    = null;
 
 // ============================================================
-// IndexedDB保存（容量制限なし・GitHub Pages対応）
+// データ保存（localStorage）
 // ============================================================
-var DB_NAME    = 'pokecaDB';
-var DB_VERSION = 1;
-var DB_STORE   = 'appData';
-var db         = null;
-
-function openDB(callback){
-  if(db){ callback(db); return; }
-  var req = indexedDB.open(DB_NAME, DB_VERSION);
-  req.onupgradeneeded = function(e){
-    e.target.result.createObjectStore(DB_STORE);
-  };
-  req.onsuccess = function(e){
-    db = e.target.result;
-    callback(db);
-  };
-  req.onerror = function(){ callback(null); };
-}
+var SAVE_KEY = 'pokeca_app_v3';
 
 function saveData(){
-  var payload = {
-    stores:       JSON.stringify(stores),
-    history:      JSON.stringify(history),
-    lotteryStats: JSON.stringify(lotteryStats)
-  };
-  // IndexedDBに保存
-  openDB(function(database){
-    if(!database) return;
-    var tx = database.transaction(DB_STORE, 'readwrite');
-    var st = tx.objectStore(DB_STORE);
-    st.put(payload.stores,       'stores');
-    st.put(payload.history,      'history');
-    st.put(payload.lotteryStats, 'lotteryStats');
-  });
-  // localStorageにもバックアップ（失敗しても無視）
-  try { localStorage.setItem('pk_stores',  payload.stores);  } catch(e){}
-  try { localStorage.setItem('pk_history', payload.history); } catch(e){}
-  try { localStorage.setItem('pk_stats',   payload.lotteryStats); } catch(e){}
-}
-
-function loadData(callback){
-  // まずIndexedDBから試みる
-  openDB(function(database){
-    if(!database){ loadFromLocalStorage(); callback(); return; }
-    var tx = database.transaction(DB_STORE, 'readonly');
-    var st = tx.objectStore(DB_STORE);
-    var results = {};
-    var keys = ['stores','history','lotteryStats'];
-    var count = 0;
-    keys.forEach(function(key){
-      var req = st.get(key);
-      req.onsuccess = function(e){
-        results[key] = e.target.result;
-        count++;
-        if(count === keys.length){
-          applyData(results.stores, results.history, results.lotteryStats);
-          callback();
-        }
-      };
-      req.onerror = function(){
-        count++;
-        if(count === keys.length){
-          loadFromLocalStorage();
-          callback();
-        }
-      };
-    });
-  });
-}
-
-function loadFromLocalStorage(){
   try {
-    var s = localStorage.getItem('pk_stores');
-    var h = localStorage.getItem('pk_history');
-    var t = localStorage.getItem('pk_stats');
-    applyData(s, h, t);
-  } catch(e){}
+    var data = {
+      stores:  stores,
+      history: history
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  } catch(e){ console.warn('saveData error', e); }
 }
 
-function applyData(s, h, t){
+function loadData(){
   try {
-    if(s){
-      var parsed = JSON.parse(s);
+    var raw = localStorage.getItem(SAVE_KEY);
+    if(!raw) return;
+    var data = JSON.parse(raw);
+    if(data.stores){
+      var parsed = data.stores;
+      // fixedな店舗が欠けていれば補完（statusは上書きしない）
       DEFAULT_STORES.forEach(function(def){
         if(!parsed.find(function(p){ return p.id===def.id; })){
           parsed.push(Object.assign({},def));
@@ -485,10 +423,11 @@ function applyData(s, h, t){
       });
       stores = parsed;
     }
-    if(h) history      = JSON.parse(h);
-    if(t) lotteryStats = JSON.parse(t);
-  } catch(e){ console.warn('applyData error', e); }
+    if(data.history) history = data.history;
+  } catch(e){ console.warn('loadData error', e); }
 }
+
+loadData();
 
 // ============================================================
 // 共通
@@ -872,8 +811,9 @@ document.getElementById('hist-year-sub1').textContent = currentYear+'年合計';
 document.getElementById('hist-year-sub2').textContent = currentYear+'年合計';
 var todayStr = currentYear+'-'+String(_m).padStart(2,'0')+'-'+String(_d).padStart(2,'0');
 document.getElementById('entry-date').value = todayStr;
-// IndexedDBからデータ読込後に描画
-loadData(function(){ render(); });
+// データ読込後に描画
+loadData();
+render();
 </script>
 </body>
 </html>
