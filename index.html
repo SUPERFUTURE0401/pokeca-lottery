@@ -375,118 +375,102 @@
 
 <script>
 // ============================================================
-// データ定義
+// データ
 // ============================================================
 var DEFAULT_STORES = [
-  { id:1, name:'Amazon',          accounts:1, status:'none', fixed:true },
-  { id:2, name:'ポケモンセンター', accounts:1, status:'none', fixed:true },
-  { id:3, name:'トイザらス',       accounts:1, status:'none', fixed:true },
-  { id:4, name:'GEO',              accounts:1, status:'none', fixed:true },
-  { id:5, name:'ふるいち',         accounts:1, status:'none', fixed:true },
-  { id:6, name:'イオン',           accounts:1, status:'none', fixed:true },
-  { id:7, name:'Joshin',           accounts:1, status:'none', fixed:true },
-  { id:8, name:'Hobby Zone',       accounts:1, status:'none', fixed:true }
+  { id:1, name:'Amazon',           status:'none', fixed:true },
+  { id:2, name:'ポケモンセンター',  status:'none', fixed:true },
+  { id:3, name:'トイザらス',        status:'none', fixed:true },
+  { id:4, name:'GEO',               status:'none', fixed:true },
+  { id:5, name:'ふるいち',          status:'none', fixed:true },
+  { id:6, name:'イオン',            status:'none', fixed:true },
+  { id:7, name:'Joshin',            status:'none', fixed:true },
+  { id:8, name:'Hobby Zone',        status:'none', fixed:true }
 ];
 
-var stores       = DEFAULT_STORES.map(function(s){ return Object.assign({},s); });
-var history      = [];
-var lotteryStats = { total:0, won:0 };
-var editingId    = null;
+var stores  = DEFAULT_STORES.map(function(s){ return Object.assign({},s); });
+var history = [];
+var editingId = null;
 
 // ============================================================
-// データ保存（localStorage）
+// 保存 / 読込
 // ============================================================
-var SAVE_KEY = 'pokeca_app_v3';
+var SAVE_KEY = 'pokeca_v4';
 
 function saveData(){
   try {
-    var data = {
-      stores:  stores,
-      history: history
-    };
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-  } catch(e){ console.warn('saveData error', e); }
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ stores:stores, history:history }));
+  } catch(e){}
 }
 
 function loadData(){
   try {
     var raw = localStorage.getItem(SAVE_KEY);
     if(!raw) return;
-    var data = JSON.parse(raw);
-    if(data.stores){
-      var parsed = data.stores;
-      // fixedな店舗が欠けていれば補完（statusは上書きしない）
+    var d = JSON.parse(raw);
+    if(d.stores){
+      stores = d.stores;
       DEFAULT_STORES.forEach(function(def){
-        if(!parsed.find(function(p){ return p.id===def.id; })){
-          parsed.push(Object.assign({},def));
-        }
+        if(!stores.find(function(s){ return s.id===def.id; }))
+          stores.push(Object.assign({},def));
       });
-      stores = parsed;
     }
-    if(data.history) history = data.history;
-  } catch(e){ console.warn('loadData error', e); }
+    if(d.history) history = d.history;
+  } catch(e){}
 }
 
-loadData();
-
 // ============================================================
-// 共通
+// 描画ユーティリティ
 // ============================================================
-function getStoreName(h){
+function storeName(h){
   if(h.storeName) return h.storeName;
   var s = stores.find(function(s){ return s.id===h.storeId; });
   return s ? s.name : '不明';
 }
 
 function render(){
-  renderDashboard(); renderLatestPills(); renderHistory();
-  renderAccounts(); renderSettings();
-  if(!document.getElementById('modal-add-entry').classList.contains('open') &&
-     !document.getElementById('modal-add-result').classList.contains('open')){
-    renderModalSelects();
-  }
+  renderDashboard();
+  renderLatestPills();
+  renderHistory();
+  renderAccounts();
+  renderSettings();
 }
 
-// ============================================================
-// 各タブ描画
-// ============================================================
 function renderDashboard(){
-  var statusMap = {
+  var map = {
     applied:['申込済','badge-applied','dot-applied'],
     pending:['結果待ち','badge-pending','dot-pending'],
     none:   ['未申込','badge-none','dot-none']
   };
   document.getElementById('dashboard-store-list').innerHTML = stores.map(function(s){
-    var st = statusMap[s.status]||statusMap.none;
-    return '<div class="store-row"><div><div class="store-name">'+s.name+'</div><div class="store-sub">'+(s.accounts>1?'メイン・サブ':'メイン')+'</div></div><div style="display:flex;align-items:center;gap:6px;"><span class="badge '+st[1]+'">'+st[0]+'</span><div class="status-dot '+st[2]+'"></div></div></div>';
+    var st = map[s.status]||map.none;
+    return '<div class="store-row"><div><div class="store-name">'+s.name+'</div></div>'
+      +'<div style="display:flex;align-items:center;gap:6px;"><span class="badge '+st[1]+'">'+st[0]+'</span>'
+      +'<div class="status-dot '+st[2]+'"></div></div></div>';
   }).join('');
-  document.getElementById('stat-applied-count').textContent = stores.filter(function(s){ return s.status==='applied'; }).length;
+  document.getElementById('stat-applied-count').textContent =
+    stores.filter(function(s){ return s.status==='applied'; }).length;
 
-  // historyから直接計算（lotteryStatsに依存しない）
-  var totalCount = history.length;
-  var wonCount   = history.filter(function(h){ return h.result==='won'; }).length;
-  var lostCount  = totalCount - wonCount;
+  var won   = history.filter(function(h){ return h.result==='won';  }).length;
+  var lost  = history.filter(function(h){ return h.result==='lost'; }).length;
+  var total = history.length;
 
-  // lotteryStatsも同期しておく
-  lotteryStats.total = totalCount;
-  lotteryStats.won   = wonCount;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-won').textContent   = won;
 
-  document.getElementById('stat-total').textContent = totalCount;
-  document.getElementById('stat-won').textContent   = wonCount;
-  if(totalCount > 0){
-    var rate = Math.round(wonCount / totalCount * 100);
-    document.getElementById('stat-winrate').innerHTML       = rate+'<span style="font-size:14px">%</span>';
-    document.getElementById('stat-winrate-sub').textContent = wonCount+'/'+totalCount+' 当選';
+  if(total > 0){
+    document.getElementById('stat-winrate').innerHTML =
+      Math.round(won/total*100)+'<span style="font-size:14px">%</span>';
+    document.getElementById('stat-winrate-sub').textContent = won+'/'+total+' 当選';
   } else {
     document.getElementById('stat-winrate').textContent     = '—';
     document.getElementById('stat-winrate-sub').textContent = '記録なし';
   }
 
-  // 履歴タブの集計
-  var hwon  = document.getElementById('hist-won-count');
-  var hlost = document.getElementById('hist-lost-count');
-  if(hwon)  hwon.textContent  = wonCount;
-  if(hlost) hlost.textContent = lostCount;
+  var hw = document.getElementById('hist-won-count');
+  var hl = document.getElementById('hist-lost-count');
+  if(hw) hw.textContent = won;
+  if(hl) hl.textContent = lost;
 }
 
 function renderLatestPills(){
@@ -497,19 +481,28 @@ function renderLatestPills(){
 }
 
 function renderHistory(){
-  document.getElementById('history-list').innerHTML = history.length === 0
+  document.getElementById('history-list').innerHTML = history.length===0
     ? '<div style="color:var(--text-secondary);font-size:13px;padding:12px 0;text-align:center;">まだ記録がありません</div>'
     : history.map(function(h,i){
         var won  = h.result==='won';
         var last = i===history.length-1 ? 'border-bottom:none;' : '';
-        return '<div class="history-item" style="'+last+'"><div class="history-icon '+(won?'icon-won':'icon-lost')+'"><i class="ti '+(won?'ti-trophy':'ti-x')+'" style="font-size:18px;"></i></div><div class="history-body"><div class="history-product">'+h.product+'</div><div class="history-store">'+getStoreName(h)+'・'+h.account+'</div></div><div class="history-right"><span class="badge '+(won?'badge-won':'badge-lost')+'">'+(won?'当選':'落選')+'</span><div class="history-date">'+h.date+'</div></div></div>';
+        return '<div class="history-item" style="'+last+'">'
+          +'<div class="history-icon '+(won?'icon-won':'icon-lost')+'">'
+          +'<i class="ti '+(won?'ti-trophy':'ti-x')+'" style="font-size:18px;"></i></div>'
+          +'<div class="history-body"><div class="history-product">'+h.product+'</div>'
+          +'<div class="history-store">'+storeName(h)+'・'+h.account+'</div></div>'
+          +'<div class="history-right"><span class="badge '+(won?'badge-won':'badge-lost')+'">'
+          +(won?'当選':'落選')+'</span>'
+          +'<div class="history-date">'+h.date+'</div></div></div>';
       }).join('');
 }
 
 function renderAccounts(){
   document.getElementById('accounts-store-list').innerHTML = stores.map(function(s,i){
     var last = i===stores.length-1 ? 'border-bottom:none;' : '';
-    return '<div class="store-row" style="'+last+'"><div><div class="store-name">'+s.name+'</div><div class="store-sub">'+s.accounts+'アカウント利用</div></div><button onclick="showPage(\'settings\',document.querySelectorAll(\'.nav-btn\')[4])" style="font-size:13px;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit;">編集</button></div>';
+    return '<div class="store-row" style="'+last+'"><div><div class="store-name">'+s.name+'</div></div>'
+      +'<button onclick="showPage(\'settings\',document.querySelectorAll(\'.nav-btn\')[4])" '
+      +'style="font-size:13px;color:var(--accent);background:none;border:none;cursor:pointer;font-family:inherit;">編集</button></div>';
   }).join('');
 }
 
@@ -517,101 +510,114 @@ function renderSettings(){
   document.getElementById('settings-store-list').innerHTML = stores.map(function(s){
     return '<div class="edit-row" id="erow-'+s.id+'">'
       +'<div class="edit-row-top">'
-        +'<div style="flex:1;min-width:0;"><div class="edit-name" id="ename-'+s.id+'">'+s.name+'</div><div class="edit-sub">'+s.accounts+'アカウント利用</div></div>'
-        +'<div style="display:flex;gap:8px;align-items:center;">'
-          +'<button class="edit-action" id="ebtn-'+s.id+'" onclick="startEdit('+s.id+')"><i class="ti ti-edit" style="font-size:16px;"></i>編集</button>'
-          +'<button onclick="deleteStore('+s.id+')" style="font-size:12px;color:#c0392b;background:none;border:none;cursor:pointer;font-family:inherit;padding:4px 0;"><i class="ti ti-trash" style="font-size:16px;vertical-align:-2px;"></i></button>'
-        +'</div>'
-      +'</div>'
+      +'<div style="flex:1;min-width:0;"><div class="edit-name" id="ename-'+s.id+'">'+s.name+'</div></div>'
+      +'<div style="display:flex;gap:8px;align-items:center;">'
+      +'<button class="edit-action" id="ebtn-'+s.id+'" onclick="startEdit('+s.id+')">'
+      +'<i class="ti ti-edit" style="font-size:16px;"></i>編集</button>'
+      +'<button onclick="deleteStore('+s.id+')" style="color:#c0392b;background:none;border:none;cursor:pointer;font-family:inherit;padding:4px;">'
+      +'<i class="ti ti-trash" style="font-size:16px;"></i></button>'
+      +'</div></div>'
       +'<div class="inline-edit" id="einline-'+s.id+'">'
-        +'<input class="inline-input" id="einput-'+s.id+'" type="text" value="'+s.name+'" onkeydown="if(event.key===\'Enter\')saveStoreName('+s.id+')">'
-        +'<button class="save-btn" onclick="saveStoreName('+s.id+')">保存</button>'
-        +'<button class="cancel-btn" onclick="cancelEdit('+s.id+')">✕</button>'
-      +'</div>'
-    +'</div>';
+      +'<input class="inline-input" id="einput-'+s.id+'" type="text" value="'+s.name+'" '
+      +'onkeydown="if(event.key===\'Enter\')saveStoreName('+s.id+')">'
+      +'<button class="save-btn" onclick="saveStoreName('+s.id+')">保存</button>'
+      +'<button class="cancel-btn" onclick="cancelEdit('+s.id+')">✕</button>'
+      +'</div></div>';
   }).join('');
 }
 
-function renderModalSelects(){
-  ['entry','result'].forEach(function(type){
-    var el = document.getElementById('sel-'+type+'-store');
-    if(!el) return;
-    el.innerHTML = stores.map(function(s){
+// ============================================================
+// モーダル
+// ============================================================
+function openModal(id){
+  document.getElementById('modal-'+id).classList.add('open');
+  if(id==='add-entry'){
+    var sel = document.getElementById('sel-entry-store');
+    sel.innerHTML = stores.map(function(s){
       return '<option value="'+s.name+'">'+s.name+'</option>';
     }).join('') + '<option value="__custom__">＋ 直接入力する</option>';
-    var row = document.getElementById('row-'+type+'-custom');
-    var inp = document.getElementById('input-'+type+'-custom');
-    if(row) row.style.display = 'none';
-    if(inp) inp.value = '';
-  });
+    document.getElementById('row-entry-custom').style.display = 'none';
+    document.getElementById('input-entry-custom').value = '';
+  }
+  if(id==='add-result'){
+    var applied = stores.filter(function(s){ return s.status==='applied'; });
+    var sel = document.getElementById('sel-result-store');
+    var msg = document.getElementById('no-applied-msg');
+    var btn = document.querySelector('#modal-add-result .btn-primary');
+    if(applied.length>0){
+      sel.innerHTML = applied.map(function(s){
+        return '<option value="'+s.name+'">'+s.name+'</option>';
+      }).join('');
+      sel.style.display = '';
+      msg.style.display = 'none';
+      btn.disabled = false;
+    } else {
+      sel.innerHTML = '';
+      sel.style.display = 'none';
+      msg.style.display = 'block';
+      btn.disabled = true;
+    }
+  }
 }
 
-// ============================================================
-// モーダル操作
-// ============================================================
+function closeModal(id){
+  document.getElementById('modal-'+id).classList.remove('open');
+}
+
 function onStoreChange(type){
   var sel = document.getElementById('sel-'+type+'-store');
   var row = document.getElementById('row-'+type+'-custom');
   var inp = document.getElementById('input-'+type+'-custom');
-  if(sel.value === '__custom__'){ row.style.display='block'; inp.focus(); }
+  if(sel.value==='__custom__'){ row.style.display='block'; inp.focus(); }
   else { row.style.display='none'; inp.value=''; }
 }
 
-function getSelectedStoreName(type){
-  var sel = document.getElementById('sel-'+type+'-store');
-  if(sel.value === '__custom__')
-    return document.getElementById('input-'+type+'-custom').value.trim() || null;
-  return sel.value || null;
-}
-
+// ============================================================
+// 申込記録
+// ============================================================
 function saveEntry(){
-  var storeName = getSelectedStoreName('entry');
+  var sel = document.getElementById('sel-entry-store');
+  var storeName = sel.value==='__custom__'
+    ? document.getElementById('input-entry-custom').value.trim()
+    : sel.value;
   if(!storeName){ showToast('店舗を選択または入力してください'); return; }
   var s = stores.find(function(s){ return s.name===storeName; });
   if(!s){
-    var newId = stores.length>0 ? Math.max.apply(null,stores.map(function(s){ return s.id; }))+1 : 1;
-    stores.push({ id:newId, name:storeName, accounts:1, status:'applied' });
+    var newId = Math.max.apply(null, stores.map(function(s){ return s.id; })) + 1;
+    stores.push({ id:newId, name:storeName, status:'applied' });
   } else {
     s.status = 'applied';
   }
   saveData();
-  var entryModal = document.getElementById('modal-add-entry');
-  entryModal.style.display = 'none';
-  entryModal.classList.remove('open');
+  closeModal('add-entry');
   render();
   showToast('"'+storeName+'" の申込を記録しました');
-  setTimeout(function(){
-    entryModal.style.display = 'none';
-    entryModal.classList.remove('open');
-  }, 50);
 }
 
+// ============================================================
+// 結果記録
+// ============================================================
 function saveResult(){
   var sel = document.getElementById('sel-result-store');
-  var storeName = sel ? sel.value : null;
-  if(!storeName){ showToast('申込済みの店舗がありません'); return; }
-  var s = stores.find(function(s){ return s.name===storeName; });
-  if(!s){
-    var newId = stores.length>0 ? Math.max.apply(null,stores.map(function(s){ return s.id; }))+1 : 1;
-    stores.push({ id:newId, name:storeName, accounts:1, status:'none' });
-    s = stores[stores.length-1];
-  }
+  var sName = sel.value;
+  if(!sName){ showToast('店舗を選択してください'); return; }
   var product = document.getElementById('sel-result-product').value;
-  var won     = document.getElementById('sel-result-result').value === 'won';
+  var won     = document.getElementById('sel-result-result').value==='won';
   var now     = new Date();
-  history.unshift({ product:product, storeId:s.id, storeName:storeName, account:'アカウント1', result:won?'won':'lost', date:(now.getMonth()+1)+'/'+(now.getDate()) });
+  var date    = (now.getMonth()+1)+'/'+(now.getDate());
+  var s = stores.find(function(s){ return s.name===sName; });
+  history.unshift({
+    product:  product,
+    storeId:  s ? s.id : null,
+    storeName:sName,
+    account:  'アカウント1',
+    result:   won ? 'won' : 'lost',
+    date:     date
+  });
   saveData();
-  // モーダルを先に確実に閉じる
-  var modal = document.getElementById('modal-add-result');
-  modal.style.display = 'none';
-  modal.classList.remove('open');
+  closeModal('add-result');
   render();
-  showToast('結果を記録しました');
-  // 念のためsetTimeoutでも閉じる
-  setTimeout(function(){
-    modal.style.display = 'none';
-    modal.classList.remove('open');
-  }, 50);
+  showToast((won?'🎉 当選':'落選')+'を記録しました');
 }
 
 // ============================================================
@@ -619,214 +625,144 @@ function saveResult(){
 // ============================================================
 function startEdit(id){
   if(editingId!==null && editingId!==id) cancelEdit(editingId);
-  editingId = id;
+  editingId=id;
   document.getElementById('einline-'+id).classList.add('open');
-  document.getElementById('ebtn-'+id).style.display = 'none';
-  var inp = document.getElementById('einput-'+id);
+  document.getElementById('ebtn-'+id).style.display='none';
+  var inp=document.getElementById('einput-'+id);
   inp.focus(); inp.select();
 }
-
 function cancelEdit(id){
-  var s = stores.find(function(s){ return s.id===id; }); if(!s) return;
-  document.getElementById('einput-'+id).value = s.name;
+  var s=stores.find(function(s){ return s.id===id; }); if(!s) return;
+  document.getElementById('einput-'+id).value=s.name;
   document.getElementById('einline-'+id).classList.remove('open');
-  document.getElementById('ebtn-'+id).style.display = '';
-  editingId = null;
+  document.getElementById('ebtn-'+id).style.display='';
+  editingId=null;
 }
-
 function saveStoreName(id){
-  var inp     = document.getElementById('einput-'+id);
-  var newName = inp.value.trim();
-  if(!newName){ inp.focus(); return; }
-  var s = stores.find(function(s){ return s.id===id; }); if(!s) return;
-  s.name = newName;
+  var inp=document.getElementById('einput-'+id);
+  var n=inp.value.trim(); if(!n){ inp.focus(); return; }
+  var s=stores.find(function(s){ return s.id===id; }); if(!s) return;
+  s.name=n;
   document.getElementById('einline-'+id).classList.remove('open');
-  document.getElementById('ebtn-'+id).style.display = '';
-  editingId = null;
+  document.getElementById('ebtn-'+id).style.display='';
+  editingId=null;
   saveData(); render();
-  showToast('"'+newName+'" に変更しました');
+  showToast('"'+n+'" に変更しました');
 }
-
 function addStore(){
-  var inp  = document.getElementById('new-store-input');
-  var name = inp.value.trim();
-  if(!name){ inp.focus(); return; }
-  var newId = stores.length>0 ? Math.max.apply(null,stores.map(function(s){ return s.id; }))+1 : 1;
-  stores.push({ id:newId, name:name, accounts:1, status:'none' });
-  inp.value = '';
-  saveData();
-  closeModal('add-store');
-  render();
-  showToast('"'+name+'" を追加しました');
+  var inp=document.getElementById('new-store-input');
+  var n=inp.value.trim(); if(!n){ inp.focus(); return; }
+  var newId=Math.max.apply(null,stores.map(function(s){ return s.id; }))+1;
+  stores.push({ id:newId, name:n, status:'none' });
+  inp.value='';
+  saveData(); closeModal('add-store'); render();
+  showToast('"'+n+'" を追加しました');
 }
-
+function deleteStore(id){
+  var s=stores.find(function(s){ return s.id===id; });
+  if(s&&s.fixed){ showToast('この店舗は削除できません'); return; }
+  if(!confirm('削除しますか？')) return;
+  stores=stores.filter(function(s){ return s.id!==id; });
+  saveData(); render();
+  showToast('削除しました');
+}
 function resetAllStatus(){
-  if(!confirm('全店舗の申込状況を「未申込」にリセットしますか？')) return;
+  if(!confirm('全店舗の申込状況をリセットしますか？')) return;
   stores.forEach(function(s){ s.status='none'; });
   saveData(); render();
   showToast('申込状況をリセットしました');
 }
-
 function resetStats(){
-  if(!confirm('当選率・申込数・当選数と履歴をリセットしますか？')) return;
-  history = [];
-  lotteryStats = { total:0, won:0 };
+  if(!confirm('履歴と統計をリセットしますか？')) return;
+  history=[];
   saveData(); render();
-  showToast('統計をリセットしました');
+  showToast('リセットしました');
 }
-
-function deleteStore(id){
-  var s = stores.find(function(s){ return s.id===id; });
-  if(s && s.fixed){ showToast('この店舗は削除できません'); return; }
-  if(!confirm('この店舗を削除しますか？')) return;
-  stores = stores.filter(function(s){ return s.id!==id; });
-  saveData(); render();
-  showToast('店舗を削除しました');
-}
-
-function getStore(id){ return stores.find(function(s){ return s.id===id; }); }
 
 // ============================================================
 // 商品詳細
 // ============================================================
 function openProductDetail(productName){
-  document.getElementById('modal-product-title').textContent = productName;
+  document.getElementById('modal-product-title').textContent=productName;
   renderProductDetail(productName);
   openModal('product-detail');
 }
-
 function renderProductDetail(productName){
-  var related   = history.filter(function(h){ return h.product===productName; });
-  var wonCount  = related.filter(function(h){ return h.result==='won';  }).length;
-  var lostCount = related.filter(function(h){ return h.result==='lost'; }).length;
+  var rel  = history.filter(function(h){ return h.product===productName; });
+  var won  = rel.filter(function(h){ return h.result==='won';  }).length;
+  var lost = rel.filter(function(h){ return h.result==='lost'; }).length;
   var html = '<div style="display:flex;gap:8px;margin-bottom:16px;">'
-    +'<div style="flex:1;background:var(--bg-secondary);border-radius:var(--radius-md);padding:10px;text-align:center;"><div style="font-size:11px;color:var(--text-secondary);">申込</div><div style="font-size:22px;font-weight:600;color:var(--text-primary);">'+related.length+'</div></div>'
-    +'<div style="flex:1;background:#EAF3DE;border-radius:var(--radius-md);padding:10px;text-align:center;"><div style="font-size:11px;color:#27500A;">当選</div><div style="font-size:22px;font-weight:600;color:#27500A;">'+wonCount+'</div></div>'
-    +'<div style="flex:1;background:#F1EFE8;border-radius:var(--radius-md);padding:10px;text-align:center;"><div style="font-size:11px;color:#5F5E5A;">落選</div><div style="font-size:22px;font-weight:600;color:#5F5E5A;">'+lostCount+'</div></div>'
-  +'</div>'
-  +'<div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">店舗別の当落を記録</div>';
+    +'<div style="flex:1;background:var(--bg-secondary);border-radius:var(--radius-md);padding:10px;text-align:center;"><div style="font-size:11px;color:var(--text-secondary);">申込</div><div style="font-size:22px;font-weight:600;">'+rel.length+'</div></div>'
+    +'<div style="flex:1;background:#EAF3DE;border-radius:var(--radius-md);padding:10px;text-align:center;"><div style="font-size:11px;color:#27500A;">当選</div><div style="font-size:22px;font-weight:600;color:#27500A;">'+won+'</div></div>'
+    +'<div style="flex:1;background:#F1EFE8;border-radius:var(--radius-md);padding:10px;text-align:center;"><div style="font-size:11px;color:#5F5E5A;">落選</div><div style="font-size:22px;font-weight:600;color:#5F5E5A;">'+lost+'</div></div>'
+    +'</div>'
+    +'<div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">店舗別</div>';
   html += stores.map(function(s){
-    var rec = related.find(function(h){ return getStoreName(h)===s.name; });
-    var result = rec ? rec.result : null;
-    var wonStyle  = result==='won'  ? 'flex:1;padding:8px 0;border-radius:var(--radius-md);border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;background:#639922;color:white;'  : 'flex:1;padding:8px 0;border-radius:var(--radius-md);border:0.5px solid #639922;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;background:none;color:#639922;';
-    var lostStyle = result==='lost' ? 'flex:1;padding:8px 0;border-radius:var(--radius-md);border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;background:#888780;color:white;' : 'flex:1;padding:8px 0;border-radius:var(--radius-md);border:0.5px solid #888780;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;background:none;color:#888780;';
-    var clearStyle = 'padding:8px 10px;border-radius:var(--radius-md);border:0.5px solid var(--border-md);font-size:12px;cursor:pointer;font-family:inherit;background:none;color:var(--text-secondary);';
+    var rec = rel.find(function(h){ return storeName(h)===s.name; });
+    var res = rec ? rec.result : null;
+    var ws = res==='won'
+      ? 'flex:1;padding:8px 0;border-radius:var(--radius-md);border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;background:#639922;color:white;'
+      : 'flex:1;padding:8px 0;border-radius:var(--radius-md);border:0.5px solid #639922;font-size:12px;cursor:pointer;font-family:inherit;background:none;color:#639922;';
+    var ls = res==='lost'
+      ? 'flex:1;padding:8px 0;border-radius:var(--radius-md);border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;background:#888780;color:white;'
+      : 'flex:1;padding:8px 0;border-radius:var(--radius-md);border:0.5px solid #888780;font-size:12px;cursor:pointer;font-family:inherit;background:none;color:#888780;';
+    var cs = 'padding:8px 10px;border-radius:var(--radius-md);border:0.5px solid var(--border-md);font-size:12px;cursor:pointer;font-family:inherit;background:none;color:var(--text-secondary);';
     return '<div style="padding:10px 0;border-bottom:0.5px solid var(--border);">'
-      +'<div style="font-size:13px;font-weight:500;color:var(--text-primary);margin-bottom:7px;">'+s.name+'</div>'
+      +'<div style="font-size:13px;font-weight:500;margin-bottom:7px;">'+s.name+'</div>'
       +'<div style="display:flex;gap:6px;">'
-        +'<button style="'+wonStyle+'"  onclick="setProductResult(\''+productName+'\',\''+s.name+'\',\'won\')">🎉 当選</button>'
-        +'<button style="'+lostStyle+'" onclick="setProductResult(\''+productName+'\',\''+s.name+'\',\'lost\')">✕ 落選</button>'
-        +(rec ? '<button style="'+clearStyle+'" onclick="setProductResult(\''+productName+'\',\''+s.name+'\',\'clear\')">取消</button>' : '')
-      +'</div>'
-    +'</div>';
+      +'<button style="'+ws+'" onclick="setResult(\''+productName+'\',\''+s.name+'\',\'won\')">🎉 当選</button>'
+      +'<button style="'+ls+'" onclick="setResult(\''+productName+'\',\''+s.name+'\',\'lost\')">✕ 落選</button>'
+      +(rec?'<button style="'+cs+'" onclick="setResult(\''+productName+'\',\''+s.name+'\',\'clear\')">取消</button>':'')
+      +'</div></div>';
   }).join('');
-  document.getElementById('modal-product-body').innerHTML = html;
+  document.getElementById('modal-product-body').innerHTML=html;
 }
-
-function setProductResult(productName, storeName, result){
-  var now = new Date();
-  var dateStr = (now.getMonth()+1)+'/'+(now.getDate());
-  var s = stores.find(function(st){ return st.name===storeName; });
-  var storeId = s ? s.id : null;
-
-  if(result === 'clear'){
-    history = history.filter(function(h){
-      return !(h.product===productName && getStoreName(h)===storeName);
-    });
-    saveData();
-    render();
-    renderProductDetail(productName);
-    return;
+function setResult(productName, sName, result){
+  var now=new Date();
+  var date=(now.getMonth()+1)+'/'+(now.getDate());
+  var s=stores.find(function(s){ return s.name===sName; });
+  if(result==='clear'){
+    history=history.filter(function(h){ return !(h.product===productName&&storeName(h)===sName); });
+    saveData(); render(); renderProductDetail(productName); return;
   }
-
-  // 既存レコードの更新
-  var existing = history.find(function(h){
-    return h.product===productName && getStoreName(h)===storeName;
-  });
-  if(existing){
-    existing.result = result;
-  } else {
-    history.unshift({
-      product:productName, storeId:storeId, storeName:storeName,
-      account:'—', result:result, date:dateStr
-    });
+  var ex=history.find(function(h){ return h.product===productName&&storeName(h)===sName; });
+  if(ex){ ex.result=result; }
+  else {
+    history.unshift({ product:productName, storeId:s?s.id:null, storeName:sName, account:'—', result:result, date:date });
   }
-
-  // 先にモーダルを閉じる
-  closeModal('product-detail');
-  // データ保存・画面更新
   saveData();
+  closeModal('product-detail');
   render();
-  showToast((result==='won' ? '🎉 当選' : '落選') + 'を記録しました（'+storeName+'）');
+  showToast((result==='won'?'🎉 当選':'落選')+'を記録しました（'+sName+'）');
 }
 
 // ============================================================
-// UI補助
+// UI
 // ============================================================
 function showToast(msg){
-  var t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(function(){ t.classList.remove('show'); }, 2200);
+  var t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); },2200);
 }
-
-function showPage(id, btn){
+function showPage(id,btn){
   document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
   document.querySelectorAll('.nav-btn').forEach(function(b){ b.classList.remove('active'); });
   document.getElementById('page-'+id).classList.add('active');
   btn.classList.add('active');
 }
 
-function openModal(id){
-  document.getElementById('modal-'+id).classList.add('open');
-  if(id === 'add-entry'){
-    var sel = document.getElementById('sel-entry-store');
-    if(sel){
-      sel.innerHTML = stores.map(function(s){ return '<option value="'+s.name+'">'+s.name+'</option>'; }).join('')
-                    + '<option value="__custom__">＋ 直接入力する</option>';
-      sel.value = stores.length>0 ? stores[0].name : '';
-    }
-    var row = document.getElementById('row-entry-custom');
-    var inp = document.getElementById('input-entry-custom');
-    if(row) row.style.display = 'none';
-    if(inp) inp.value = '';
-  }
-  if(id === 'add-result'){
-    var applied = stores.filter(function(s){ return s.status === 'applied'; });
-    var sel     = document.getElementById('sel-result-store');
-    var msg     = document.getElementById('no-applied-msg');
-    var btn     = document.querySelector('#modal-add-result .btn-primary');
-    if(applied.length > 0){
-      sel.innerHTML = applied.map(function(s){ return '<option value="'+s.name+'">'+s.name+'</option>'; }).join('');
-      sel.style.display = '';
-      if(msg) msg.style.display = 'none';
-      if(btn) btn.disabled = false;
-    } else {
-      sel.innerHTML = '';
-      sel.style.display = 'none';
-      if(msg) msg.style.display = 'block';
-      if(btn) btn.disabled = true;
-    }
-  }
-}
-
-function closeModal(id){ document.getElementById('modal-'+id).classList.remove('open'); }
-
 // ============================================================
 // 初期化
 // ============================================================
-var currentYear = new Date().getFullYear();
-var _now = new Date();
-var _m   = _now.getMonth()+1;
-var _d   = _now.getDate();
-document.getElementById('header-sub').textContent = currentYear+'年'+_m+'月'+_d+'日 申込状況';
-document.getElementById('stat-year-sub1').textContent = currentYear+'年';
-document.getElementById('stat-year-sub2').textContent = currentYear+'年';
-document.getElementById('hist-year-sub1').textContent = currentYear+'年合計';
-document.getElementById('hist-year-sub2').textContent = currentYear+'年合計';
-var todayStr = currentYear+'-'+String(_m).padStart(2,'0')+'-'+String(_d).padStart(2,'0');
-document.getElementById('entry-date').value = todayStr;
-// データ読込後に描画
 loadData();
+var now=new Date();
+var y=now.getFullYear(), m=now.getMonth()+1, d=now.getDate();
+document.getElementById('header-sub').textContent=y+'年'+m+'月'+d+'日 申込状況';
+document.getElementById('stat-year-sub1').textContent=y+'年';
+document.getElementById('stat-year-sub2').textContent=y+'年';
+document.getElementById('hist-year-sub1').textContent=y+'年合計';
+document.getElementById('hist-year-sub2').textContent=y+'年合計';
+document.getElementById('entry-date').value=y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
 render();
 </script>
 </body>
