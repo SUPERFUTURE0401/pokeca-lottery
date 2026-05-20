@@ -394,54 +394,90 @@ var lotteryStats = { total:0, won:0 };
 var editingId    = null;
 
 // ============================================================
-// Cookie保存（GitHub Pages対応）
+// IndexedDB保存（容量制限なし・GitHub Pages対応）
 // ============================================================
-function setCookie(name, value){
-  try {
-    // cookieは4KB制限があるためlocalStorageを優先し、失敗したらcookieへ
-    localStorage.setItem(name, value);
-  } catch(e) {}
-  try {
-    // cookieにも保存（バックアップ）
-    var expires = new Date();
-    expires.setFullYear(expires.getFullYear() + 1);
-    document.cookie = name + '=' + encodeURIComponent(value) + ';expires=' + expires.toUTCString() + ';path=/;SameSite=Lax';
-  } catch(e) {}
-}
+var DB_NAME    = 'pokecaDB';
+var DB_VERSION = 1;
+var DB_STORE   = 'appData';
+var db         = null;
 
-function getCookie(name){
-  // まずlocalStorageから試みる
-  try {
-    var v = localStorage.getItem(name);
-    if(v !== null) return v;
-  } catch(e) {}
-  // cookieから読む
-  try {
-    var cookies = document.cookie.split(';');
-    for(var i=0; i<cookies.length; i++){
-      var parts = cookies[i].trim().split('=');
-      if(parts[0] === name) return decodeURIComponent(parts.slice(1).join('='));
-    }
-  } catch(e) {}
-  return null;
+function openDB(callback){
+  if(db){ callback(db); return; }
+  var req = indexedDB.open(DB_NAME, DB_VERSION);
+  req.onupgradeneeded = function(e){
+    e.target.result.createObjectStore(DB_STORE);
+  };
+  req.onsuccess = function(e){
+    db = e.target.result;
+    callback(db);
+  };
+  req.onerror = function(){ callback(null); };
 }
 
 function saveData(){
-  try {
-    setCookie('pk_stores',  JSON.stringify(stores));
-    setCookie('pk_history', JSON.stringify(history));
-    setCookie('pk_stats',   JSON.stringify(lotteryStats));
-  } catch(e){ console.warn('saveData error', e); }
+  var payload = {
+    stores:       JSON.stringify(stores),
+    history:      JSON.stringify(history),
+    lotteryStats: JSON.stringify(lotteryStats)
+  };
+  // IndexedDBに保存
+  openDB(function(database){
+    if(!database) return;
+    var tx = database.transaction(DB_STORE, 'readwrite');
+    var st = tx.objectStore(DB_STORE);
+    st.put(payload.stores,       'stores');
+    st.put(payload.history,      'history');
+    st.put(payload.lotteryStats, 'lotteryStats');
+  });
+  // localStorageにもバックアップ（失敗しても無視）
+  try { localStorage.setItem('pk_stores',  payload.stores);  } catch(e){}
+  try { localStorage.setItem('pk_history', payload.history); } catch(e){}
+  try { localStorage.setItem('pk_stats',   payload.lotteryStats); } catch(e){}
 }
 
-function loadData(){
+function loadData(callback){
+  // まずIndexedDBから試みる
+  openDB(function(database){
+    if(!database){ loadFromLocalStorage(); callback(); return; }
+    var tx = database.transaction(DB_STORE, 'readonly');
+    var st = tx.objectStore(DB_STORE);
+    var results = {};
+    var keys = ['stores','history','lotteryStats'];
+    var count = 0;
+    keys.forEach(function(key){
+      var req = st.get(key);
+      req.onsuccess = function(e){
+        results[key] = e.target.result;
+        count++;
+        if(count === keys.length){
+          applyData(results.stores, results.history, results.lotteryStats);
+          callback();
+        }
+      };
+      req.onerror = function(){
+        count++;
+        if(count === keys.length){
+          loadFromLocalStorage();
+          callback();
+        }
+      };
+    });
+  });
+}
+
+function loadFromLocalStorage(){
   try {
-    var s = getCookie('pk_stores');
-    var h = getCookie('pk_history');
-    var t = getCookie('pk_stats');
+    var s = localStorage.getItem('pk_stores');
+    var h = localStorage.getItem('pk_history');
+    var t = localStorage.getItem('pk_stats');
+    applyData(s, h, t);
+  } catch(e){}
+}
+
+function applyData(s, h, t){
+  try {
     if(s){
       var parsed = JSON.parse(s);
-      // fixedな店舗が欠けていれば補完（statusは上書きしない）
       DEFAULT_STORES.forEach(function(def){
         if(!parsed.find(function(p){ return p.id===def.id; })){
           parsed.push(Object.assign({},def));
@@ -451,10 +487,8 @@ function loadData(){
     }
     if(h) history      = JSON.parse(h);
     if(t) lotteryStats = JSON.parse(t);
-  } catch(e){ console.warn('loadData error', e); }
+  } catch(e){ console.warn('applyData error', e); }
 }
-
-loadData();
 
 // ============================================================
 // 共通
@@ -838,7 +872,8 @@ document.getElementById('hist-year-sub1').textContent = currentYear+'年合計';
 document.getElementById('hist-year-sub2').textContent = currentYear+'年合計';
 var todayStr = currentYear+'-'+String(_m).padStart(2,'0')+'-'+String(_d).padStart(2,'0');
 document.getElementById('entry-date').value = todayStr;
-render();
+// IndexedDBからデータ読込後に描画
+loadData(function(){ render(); });
 </script>
 </body>
 </html>
