@@ -575,9 +575,15 @@ function saveEntry(){
     s.status = 'applied';
   }
   saveData();
-  closeModal('add-entry');
+  var entryModal = document.getElementById('modal-add-entry');
+  entryModal.style.display = 'none';
+  entryModal.classList.remove('open');
   render();
   showToast('"'+storeName+'" の申込を記録しました');
+  setTimeout(function(){
+    entryModal.style.display = 'none';
+    entryModal.classList.remove('open');
+  }, 50);
 }
 
 function saveResult(){
@@ -595,10 +601,17 @@ function saveResult(){
   var now     = new Date();
   history.unshift({ product:product, storeId:s.id, storeName:storeName, account:'アカウント1', result:won?'won':'lost', date:(now.getMonth()+1)+'/'+(now.getDate()) });
   saveData();
+  // モーダルを先に確実に閉じる
+  var modal = document.getElementById('modal-add-result');
+  modal.style.display = 'none';
+  modal.classList.remove('open');
   render();
   showToast('結果を記録しました');
-  // 最後にモーダルを閉じる
-  document.getElementById('modal-add-result').classList.remove('open');
+  // 念のためsetTimeoutでも閉じる
+  setTimeout(function(){
+    modal.style.display = 'none';
+    modal.classList.remove('open');
+  }, 50);
 }
 
 // ============================================================
