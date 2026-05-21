@@ -586,6 +586,13 @@ function renderLatestPills(){
   }).join('');
 }
 
+function deleteHistory(index){
+  appHistory.splice(index, 1);
+  saveData();
+  render();
+  showToast('記録を削除しました');
+}
+
 function openResultFromHistory(productName, sName, account){
   // 結果入力モーダルを開いて該当店舗・商品を選択状態にする
   openModal('add-result');
@@ -633,15 +640,19 @@ function renderHistory(){
           badgeLabel = '落選';
           clickAttr  = '';
         }
-        return '<div class="appHistory-item" style="'+last+'" '+clickAttr+'>'
+        return '<div class="appHistory-item" style="'+last+';position:relative;" '+clickAttr+'>'
           +'<div class="appHistory-icon '+iconClass+'">'
           +'<i class="ti '+iconName+'" style="font-size:18px;"></i></div>'
           +'<div class="appHistory-body">'
           +'<div class="appHistory-product">'+h.product+'</div>'
           +'<div class="appHistory-store">'+storeName(h)+'・'+h.account+'</div></div>'
-          +'<div class="appHistory-right">'
+          +'<div class="appHistory-right" style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">'
           +'<span class="badge '+badgeClass+'">'+badgeLabel+'</span>'
-          +'<div class="appHistory-date">'+h.date+'</div></div></div>';
+          +'<div class="appHistory-date">'+h.date+'</div></div>'
+          +'<button onclick="event.stopPropagation();deleteHistory('+i+')" '
+          +'style="position:absolute;top:8px;right:0;background:none;border:none;cursor:pointer;color:var(--text-secondary);padding:2px 4px;font-size:16px;line-height:1;">'
+          +'<i class="ti ti-x"></i></button>'
+          +'</div>';
       }).join('');
 }
 
