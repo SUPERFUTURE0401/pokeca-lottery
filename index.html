@@ -601,25 +601,44 @@ function saveResult(){
   var sel = document.getElementById('sel-result-store');
   var sName = sel ? sel.value : '';
   if(!sName){ showToast('店舗を選択してください'); return; }
-  var product = document.getElementById('sel-result-product').value;
+  var product   = document.getElementById('sel-result-product').value;
   var resultVal = document.getElementById('sel-result-result').value;
-  var won = resultVal === 'won';
-  var now = new Date();
-  var date = (now.getMonth()+1)+'/'+(now.getDate());
-  var s = stores.find(function(s){ return s.name===sName; });
-  var newRecord = {
-    product:  product,
-    storeId:  s ? s.id : null,
-    storeName:sName,
-    account:  'アカウント1',
-    result:   won ? 'won' : 'lost',
-    date:     date
-  };
-  history.unshift(newRecord);
+  var isWon     = (resultVal === 'won');
+  var now       = new Date();
+  var date      = (now.getMonth()+1)+'/'+(now.getDate());
+  var s         = stores.find(function(s){ return s.name===sName; });
+
+  history.unshift({
+    product:   product,
+    storeId:   s ? s.id : null,
+    storeName: sName,
+    account:   'アカウント1',
+    result:    isWon ? 'won' : 'lost',
+    date:      date
+  });
+
   saveData();
-  closeModal('add-result');
+
+  // モーダルを閉じる
+  var modal = document.getElementById('modal-add-result');
+  modal.classList.remove('open');
+
+  // 直接DOM更新（render()を待たずに）
+  var wonCount   = history.filter(function(h){ return h.result==='won';  }).length;
+  var totalCount = history.length;
+  document.getElementById('stat-won').textContent   = wonCount;
+  document.getElementById('stat-total').textContent = totalCount;
+  if(totalCount > 0){
+    document.getElementById('stat-winrate').innerHTML       = Math.round(wonCount/totalCount*100)+'<span style="font-size:14px">%</span>';
+    document.getElementById('stat-winrate-sub').textContent = wonCount+'/'+totalCount+' 当選';
+  }
+  var hw = document.getElementById('hist-won-count');
+  var hl = document.getElementById('hist-lost-count');
+  if(hw) hw.textContent = wonCount;
+  if(hl) hl.textContent = totalCount - wonCount;
+
   render();
-  showToast((won?'🎉 当選 '+history.filter(function(h){return h.result==='won';}).length+'件':'落選')+'を記録しました');
+  showToast((isWon ? '🎉 当選' : '落選') + 'を記録しました（当選計'+wonCount+'件）');
 }
 
 // ============================================================
