@@ -307,13 +307,16 @@
     </div>
     <div class="form-row">
       <label class="form-label">店舗</label>
-      <select class="form-select" id="sel-entry-store" onchange="onStoreChange('entry')"></select>
+      <select class="form-select" id="sel-entry-store" onchange="onEntryStoreChange(this.value)"></select>
     </div>
     <div class="form-row" id="row-entry-custom" style="display:none;">
       <label class="form-label">店舗名を入力</label>
       <input type="text" class="form-input" id="input-entry-custom" placeholder="例：トイザらス">
     </div>
-    <div class="form-row"><label class="form-label">アカウント</label><select class="form-select" id="sel-entry-account"><option>アカウント1</option><option>アカウント2</option><option>アカウント3</option><option>アカウント4</option><option>アカウント5</option><option>アカウント6</option></select></div>
+    <div class="form-row" id="row-entry-account">
+      <label class="form-label">アカウント</label>
+      <select class="form-select" id="sel-entry-account"></select>
+    </div>
     <div class="form-row"><label class="form-label">申込日</label><input type="date" class="form-input" id="entry-date"></div>
     <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('add-entry')">キャンセル</button><button class="btn-primary" onclick="saveEntry()">記録する</button></div>
   </div>
@@ -378,14 +381,14 @@
 // データ
 // ============================================================
 var DEFAULT_STORES = [
-  { id:1, name:'Amazon',           status:'none', fixed:true },
-  { id:2, name:'ポケモンセンター',  status:'none', fixed:true },
-  { id:3, name:'トイザらス',        status:'none', fixed:true },
-  { id:4, name:'GEO',               status:'none', fixed:true },
-  { id:5, name:'ふるいち',          status:'none', fixed:true },
-  { id:6, name:'イオン',            status:'none', fixed:true },
-  { id:7, name:'Joshin',            status:'none', fixed:true },
-  { id:8, name:'Hobby Zone',        status:'none', fixed:true }
+  { id:1, name:'Amazon',           status:'none', fixed:true, maxAccounts:1 },
+  { id:2, name:'ポケモンセンター',  status:'none', fixed:true, maxAccounts:6, accountStatus:['none','none','none','none','none','none'] },
+  { id:3, name:'トイザらス',        status:'none', fixed:true, maxAccounts:1 },
+  { id:4, name:'GEO',               status:'none', fixed:true, maxAccounts:1 },
+  { id:5, name:'ふるいち',          status:'none', fixed:true, maxAccounts:1 },
+  { id:6, name:'イオン',            status:'none', fixed:true, maxAccounts:1 },
+  { id:7, name:'Joshin',            status:'none', fixed:true, maxAccounts:1 },
+  { id:8, name:'Hobby Zone',        status:'none', fixed:true, maxAccounts:1 }
 ];
 
 var stores  = DEFAULT_STORES.map(function(s){ return Object.assign({},s); });
@@ -395,7 +398,7 @@ var editingId = null;
 // ============================================================
 // 保存 / 読込
 // ============================================================
-var SAVE_KEY = 'pokeca_v4';
+var SAVE_KEY = 'pokeca_v5';
 
 function saveData(){
   try {
@@ -410,6 +413,16 @@ function loadData(){
     var d = JSON.parse(raw);
     if(d.stores){
       stores = d.stores;
+      // DEFAULT_STORESの不足プロパティを補完
+      stores.forEach(function(s){
+        var def = DEFAULT_STORES.find(function(d){ return d.id===s.id; });
+        if(def){
+          if(s.maxAccounts === undefined) s.maxAccounts = def.maxAccounts;
+          if(s.accountStatus === undefined && def.accountStatus)
+            s.accountStatus = def.accountStatus.slice();
+        }
+        if(s.maxAccounts === undefined) s.maxAccounts = 1;
+      });
       DEFAULT_STORES.forEach(function(def){
         if(!stores.find(function(s){ return s.id===def.id; }))
           stores.push(Object.assign({},def));
@@ -437,31 +450,60 @@ function render(){
 }
 
 function renderDashboard(){
-  var map = {
+  var statusMap = {
     applied:['申込済','badge-applied','dot-applied'],
     pending:['結果待ち','badge-pending','dot-pending'],
     none:   ['未申込','badge-none','dot-none']
   };
   document.getElementById('dashboard-store-list').innerHTML = stores.map(function(s){
-    var st = map[s.status]||map.none;
-    return '<div class="store-row"><div><div class="store-name">'+s.name+'</div></div>'
-      +'<div style="display:flex;align-items:center;gap:6px;"><span class="badge '+st[1]+'">'+st[0]+'</span>'
-      +'<div class="status-dot '+st[2]+'"></div></div></div>';
+    if(s.maxAccounts > 1 && s.accountStatus){
+      // アカウント複数の場合（ポケモンセンター）
+      var appliedCount = s.accountStatus.filter(function(a){ return a==='applied'; }).length;
+      var accountBadges = s.accountStatus.map(function(a, i){
+        var st = statusMap[a]||statusMap.none;
+        return '<span class="badge '+st[1]+'" style="font-size:10px;padding:2px 6px;">AC'+(i+1)+'</span>';
+      }).join('');
+      var overallSt = appliedCount > 0 ? statusMap.applied : statusMap.none;
+      return '<div class="store-row" style="flex-direction:column;align-items:flex-start;gap:6px;">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;width:100%;">'
+        +'<div class="store-name">'+s.name+'</div>'
+        +'<span style="font-size:11px;color:var(--text-secondary);">'+appliedCount+'/'+s.maxAccounts+'件申込</span>'
+        +'</div>'
+        +'<div style="display:flex;flex-wrap:wrap;gap:4px;">'+accountBadges+'</div>'
+        +'</div>';
+    } else {
+      var st = statusMap[s.status]||statusMap.none;
+      return '<div class="store-row">'
+        +'<div class="store-name">'+s.name+'</div>'
+        +'<div style="display:flex;align-items:center;gap:6px;">'
+        +'<span class="badge '+st[1]+'">'+st[0]+'</span>'
+        +'<div class="status-dot '+st[2]+'"></div>'
+        +'</div></div>';
+    }
   }).join('');
-  document.getElementById('stat-applied-count').textContent =
-    stores.filter(function(s){ return s.status==='applied'; }).length;
+  // 申込中カウント：通常店舗は1件、複数アカウント店舗はアカウント数分
+  var appliedCount = 0;
+  stores.forEach(function(s){
+    if(s.maxAccounts > 1 && s.accountStatus){
+      appliedCount += s.accountStatus.filter(function(a){ return a==='applied'; }).length;
+    } else if(s.status === 'applied'){
+      appliedCount += 1;
+    }
+  });
+  document.getElementById('stat-applied-count').textContent = appliedCount;
 
-  var won   = appHistory.filter(function(h){ return h.result==='won';  }).length;
-  var lost  = appHistory.filter(function(h){ return h.result==='lost'; }).length;
-  var total = appHistory.length;
+  var entryCount = appHistory.filter(function(h){ return h.type==='entry' || !h.type; }).length;
+  var won        = appHistory.filter(function(h){ return h.result==='won';  }).length;
+  var lost       = appHistory.filter(function(h){ return h.result==='lost'; }).length;
+  var resultCount= won + lost;
 
-  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-total').textContent = entryCount;
   document.getElementById('stat-won').textContent   = won;
 
-  if(total > 0){
+  if(resultCount > 0){
     document.getElementById('stat-winrate').innerHTML =
-      Math.round(won/total*100)+'<span style="font-size:14px">%</span>';
-    document.getElementById('stat-winrate-sub').textContent = won+'/'+total+' 当選';
+      Math.round(won/resultCount*100)+'<span style="font-size:14px">%</span>';
+    document.getElementById('stat-winrate-sub').textContent = won+'/'+resultCount+' 当選';
   } else {
     document.getElementById('stat-winrate').textContent     = '—';
     document.getElementById('stat-winrate-sub').textContent = '記録なし';
@@ -537,7 +579,10 @@ function openModal(id){
       return '<option value="'+s.name+'">'+s.name+'</option>';
     }).join('') + '<option value="__custom__">＋ 直接入力する</option>';
     document.getElementById('row-entry-custom').style.display = 'none';
-    document.getElementById('input-entry-custom').value = '';
+    document.getElementById('input-entry-custom').value       = '';
+    // 最初の店舗に合わせてアカウント欄を初期化
+    var firstVal = sel.options.length > 0 ? sel.options[0].value : '';
+    updateAccountSelect(firstVal);
   }
   if(id==='add-result'){
     var applied = stores.filter(function(s){ return s.status==='applied'; });
@@ -575,23 +620,79 @@ function onStoreChange(type){
 // ============================================================
 // 申込記録
 // ============================================================
+function onEntryStoreChange(val){
+  var row = document.getElementById('row-entry-custom');
+  var inp = document.getElementById('input-entry-custom');
+  if(val === '__custom__'){
+    row.style.display = 'block';
+    inp.focus();
+    document.getElementById('sel-entry-account').innerHTML = '<option value="0">アカウント1</option>';
+    document.getElementById('row-entry-account').style.display = 'none';
+  } else {
+    row.style.display = 'none';
+    inp.value = '';
+    updateAccountSelect(val);
+  }
+}
+
+function updateAccountSelect(sName){
+  var s   = stores.find(function(s){ return s.name===sName; });
+  var max = (s && s.maxAccounts) ? s.maxAccounts : 1;
+  var sel = document.getElementById('sel-entry-account');
+  var row = document.getElementById('row-entry-account');
+  if(max > 1){
+    sel.innerHTML = '';
+    for(var i=1; i<=max; i++){
+      var ac    = (s.accountStatus && s.accountStatus[i-1]) ? s.accountStatus[i-1] : 'none';
+      var label = 'アカウント'+i+(ac==='applied' ? ' ✓申込済' : '');
+      sel.innerHTML += '<option value="'+(i-1)+'">'+label+'</option>';
+    }
+    row.style.display = '';
+  } else {
+    sel.innerHTML     = '<option value="0">アカウント1</option>';
+    row.style.display = 'none';
+  }
+}
+
 function saveEntry(){
-  var sel = document.getElementById('sel-entry-store');
-  var storeName = sel.value==='__custom__'
+  var storeSel = document.getElementById('sel-entry-store');
+  var sName    = storeSel.value==='__custom__'
     ? document.getElementById('input-entry-custom').value.trim()
-    : sel.value;
-  if(!storeName){ showToast('店舗を選択または入力してください'); return; }
-  var s = stores.find(function(s){ return s.name===storeName; });
+    : storeSel.value;
+  if(!sName){ showToast('店舗を選択または入力してください'); return; }
+  var s = stores.find(function(s){ return s.name===sName; });
   if(!s){
     var newId = Math.max.apply(null, stores.map(function(s){ return s.id; })) + 1;
-    stores.push({ id:newId, name:storeName, status:'applied' });
+    stores.push({ id:newId, name:sName, status:'applied', maxAccounts:1 });
+    s = stores[stores.length-1];
   } else {
-    s.status = 'applied';
+    if(s.maxAccounts > 1 && s.accountStatus){
+      var acIdx = parseInt(document.getElementById('sel-entry-account').value, 10);
+      s.accountStatus[acIdx] = 'applied';
+      s.status = 'applied';
+    } else {
+      s.status = 'applied';
+    }
   }
+  // 申込履歴にも追加（総申込数カウント用）
+  var now     = new Date();
+  var date    = now.getFullYear()+'/'+(now.getMonth()+1)+'/'+now.getDate();
+  var acLabel = (s.maxAccounts > 1)
+    ? 'アカウント'+(parseInt(document.getElementById('sel-entry-account').value,10)+1)
+    : 'アカウント1';
+  appHistory.push({
+    type:      'entry',
+    product:   document.getElementById('sel-entry-product').value,
+    storeName: sName,
+    storeId:   s.id,
+    account:   acLabel,
+    result:    'pending',
+    date:      date
+  });
   saveData();
   closeModal('add-entry');
   render();
-  showToast('"'+storeName+'" の申込を記録しました');
+  showToast('"'+sName+'" の申込を記録しました');
 }
 
 // ============================================================
@@ -689,7 +790,10 @@ function deleteStore(id){
 }
 function resetAllStatus(){
   if(!confirm('全店舗の申込状況をリセットしますか？')) return;
-  stores.forEach(function(s){ s.status='none'; });
+  stores.forEach(function(s){
+    s.status = 'none';
+    if(s.accountStatus) s.accountStatus = s.accountStatus.map(function(){ return 'none'; });
+  });
   saveData(); render();
   showToast('申込状況をリセットしました');
 }
