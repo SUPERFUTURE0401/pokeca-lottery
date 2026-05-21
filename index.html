@@ -383,9 +383,13 @@
     </div>
     <div class="form-row">
       <label class="form-label">店舗 <span style="font-size:10px;color:var(--text-secondary);font-weight:400;">（申込済みのみ表示）</span></label>
-      <select class="form-select" id="sel-result-store"></select>
+      <select class="form-select" id="sel-result-store" onchange="onResultStoreChange(this.value)"></select>
     </div>
     <div id="no-applied-msg" style="display:none;font-size:13px;color:var(--text-secondary);padding:8px 0;">申込済みの店舗がありません。先に申込を記録してください。</div>
+    <div class="form-row" id="row-result-account" style="display:none;">
+      <label class="form-label">アカウント</label>
+      <select class="form-select" id="sel-result-account"></select>
+    </div>
     <div class="form-row"><label class="form-label">結果</label><select class="form-select" id="sel-result-result"><option value="won">当選 🎉</option><option value="lost">落選</option></select></div>
     <div class="modal-actions"><button class="btn-cancel" onclick="closeModal('add-result')">キャンセル</button><button class="btn-primary" id="btn-save-result" onclick="saveResult()">保存する</button></div>
   </div>
@@ -594,7 +598,6 @@ function deleteHistory(index){
 }
 
 function openResultFromHistory(productName, sName, account){
-  // 結果入力モーダルを開いて該当店舗・商品を選択状態にする
   openModal('add-result');
   // 商品を選択
   var pSel = document.getElementById('sel-result-product');
@@ -603,11 +606,20 @@ function openResultFromHistory(productName, sName, account){
       if(pSel.options[i].value===productName){ pSel.selectedIndex=i; break; }
     }
   }
-  // 店舗を申込済みから探して選択
+  // 店舗を選択
   var rSel = document.getElementById('sel-result-store');
   if(rSel){
     for(var j=0;j<rSel.options.length;j++){
       if(rSel.options[j].value===sName){ rSel.selectedIndex=j; break; }
+    }
+    // アカウント欄を更新
+    onResultStoreChange(sName);
+  }
+  // アカウントを選択
+  var acSel = document.getElementById('sel-result-account');
+  if(acSel){
+    for(var k=0;k<acSel.options.length;k++){
+      if(acSel.options[k].value===account){ acSel.selectedIndex=k; break; }
     }
   }
 }
@@ -711,12 +723,13 @@ function openModal(id){
       }).join('');
       rsel.style.display = '';
       msg.style.display  = 'none';
+      // 最初の店舗に合わせてアカウント欄初期化
+      onResultStoreChange(rsel.value);
     } else {
       rsel.innerHTML     = '';
       rsel.style.display = 'none';
       msg.style.display  = 'block';
     }
-    // ボタンは常に有効
     var btn = document.getElementById('btn-save-result');
     if(btn) btn.disabled = false;
   }
@@ -816,47 +829,39 @@ function saveEntry(){
 // 結果記録
 // ============================================================
 function saveResult(){
-  var sel = document.getElementById('sel-result-store');
+  var sel   = document.getElementById('sel-result-store');
   var sName = sel ? sel.value : '';
   if(!sName){ showToast('店舗を選択してください'); return; }
-  var product   = document.getElementById('sel-result-product').value;
-  var resultVal = document.getElementById('sel-result-result').value;
-  var isWon     = (resultVal === 'won');
-  var now       = new Date();
-  var date      = (now.getMonth()+1)+'/'+(now.getDate());
-  var s         = stores.find(function(s){ return s.name===sName; });
-
-  appHistory.unshift({
-    product:   product,
-    storeId:   s ? s.id : null,
-    storeName: sName,
-    account:   'アカウント1',
-    result:    isWon ? 'won' : 'lost',
-    date:      date
+  var acRow   = document.getElementById('row-result-account');
+  var acSel   = document.getElementById('sel-result-account');
+  var account = (acRow && acRow.style.display!=='none' && acSel && acSel.value)
+    ? acSel.value : 'アカウント1';
+  var product = document.getElementById('sel-result-product').value;
+  var won     = document.getElementById('sel-result-result').value==='won';
+  var now     = new Date();
+  var date    = (now.getMonth()+1)+'/'+(now.getDate());
+  var s       = stores.find(function(s){ return s.name===sName; });
+  // 同じ店舗・商品・アカウントの申込中レコードを結果で更新
+  var existing = appHistory.find(function(h){
+    return h.type==='entry' && h.product===product && storeName(h)===sName && h.account===account;
   });
-
-  saveData();
-
-  // モーダルを閉じる
-  var modal = document.getElementById('modal-add-result');
-  modal.classList.remove('open');
-
-  // 直接DOM更新（render()を待たずに）
-  var wonCount   = appHistory.filter(function(h){ return h.result==='won';  }).length;
-  var totalCount = appHistory.length;
-  document.getElementById('stat-won').textContent   = wonCount;
-  document.getElementById('stat-total').textContent = totalCount;
-  if(totalCount > 0){
-    document.getElementById('stat-winrate').innerHTML       = Math.round(wonCount/totalCount*100)+'<span style="font-size:14px">%</span>';
-    document.getElementById('stat-winrate-sub').textContent = wonCount+'/'+totalCount+' 当選';
+  if(existing){
+    existing.result = won ? 'won' : 'lost';
+    existing.type   = 'result';
+  } else {
+    appHistory.unshift({
+      product:   product,
+      storeId:   s ? s.id : null,
+      storeName: sName,
+      account:   account,
+      result:    won ? 'won' : 'lost',
+      date:      date
+    });
   }
-  var hw = document.getElementById('hist-won-count');
-  var hl = document.getElementById('hist-lost-count');
-  if(hw) hw.textContent = wonCount;
-  if(hl) hl.textContent = totalCount - wonCount;
-
+  saveData();
+  document.getElementById('modal-add-result').classList.remove('open');
   render();
-  showToast((isWon ? '🎉 当選' : '落選') + 'を記録しました（当選計'+wonCount+'件）');
+  showToast((won?'🎉 当選':'落選')+'を記録しました');
 }
 
 // ============================================================
