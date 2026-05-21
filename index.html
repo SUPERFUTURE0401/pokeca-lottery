@@ -825,6 +825,25 @@ function saveEntry(){
   showToast('"'+sName+'" の申込を記録しました');
 }
 
+function onResultStoreChange(sName){
+  var s   = stores.find(function(s){ return s.name===sName; });
+  var row = document.getElementById('row-result-account');
+  var sel = document.getElementById('sel-result-account');
+  if(!row || !sel) return;
+  if(s && s.maxAccounts > 1 && s.accountStatus){
+    sel.innerHTML = '';
+    for(var i=0; i<s.maxAccounts; i++){
+      var ac    = s.accountStatus[i]||'none';
+      var label = 'アカウント'+(i+1)+(ac==='applied'?' ✓申込済':'');
+      sel.innerHTML += '<option value="アカウント'+(i+1)+'">'+label+'</option>';
+    }
+    row.style.display = '';
+  } else {
+    sel.innerHTML     = '<option value="アカウント1">アカウント1</option>';
+    row.style.display = 'none';
+  }
+}
+
 // ============================================================
 // 結果記録
 // ============================================================
