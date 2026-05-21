@@ -135,9 +135,12 @@
       <div class="header-title">🎴 ポケカ抽選管理</div>
       <div class="header-sub" id="header-sub"></div>
     </div>
-    <button class="header-add" onclick="openModal('add-entry')">
-      <i class="ti ti-plus"></i> 追加
-    </button>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+      <div id="header-won-total" style="font-size:12px;font-weight:600;color:#27500A;background:#EAF3DE;padding:3px 9px;border-radius:99px;"></div>
+      <button class="header-add" onclick="openModal('add-entry')">
+        <i class="ti ti-plus"></i> 追加
+      </button>
+    </div>
   </div>
 
   <nav class="nav">
@@ -146,6 +149,7 @@
     <button class="nav-btn" onclick="showPage('appHistory',this)"><i class="ti ti-clock-hour-4"></i>履歴</button>
     <button class="nav-btn" onclick="showPage('accounts',this)"><i class="ti ti-users"></i>アカウント</button>
     <button class="nav-btn" onclick="showPage('settings',this)"><i class="ti ti-settings"></i>設定</button>
+    <button class="nav-btn" onclick="showPage('purchase',this)"><i class="ti ti-shopping-cart"></i>購入</button>
   </nav>
 
   <div class="content">
@@ -165,7 +169,7 @@
         </div>
       </div>
       <div class="stat-grid">
-        <div class="stat-card"><div class="stat-label">申込中</div><div class="stat-value" id="stat-applied-count">0</div><div class="stat-sub">店舗</div></div>
+        <div class="stat-card"><div class="stat-label">申込中</div><div class="stat-value" id="stat-applied-count">0</div></div>
         <div class="stat-card">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;">
             <div class="stat-label">当選率</div>
@@ -208,28 +212,28 @@
         <div class="store-row" onclick="openProductDetail('ハイクラスパック MEGAドリームex')" style="cursor:pointer;">
           <div style="display:flex;align-items:center;gap:10px;">
             <img src="https://www.pokemon-card.com/ex/m2a/assets/images/ogp.png" alt="MEGAドリームex" style="width:40px;height:56px;object-fit:contain;border-radius:4px;background:#E6F1FB;flex-shrink:0;">
-            <div><div class="store-name">ハイクラスパック MEGAドリームex</div><div class="store-sub">2026年発売中</div></div>
+            <div><div class="store-name">ハイクラスパック MEGAドリームex</div><div class="store-sub">2025年11月28日発売 / BOX ¥5,500</div></div>
           </div>
           <span class="badge badge-won">発売中 ›</span>
         </div>
         <div class="store-row" onclick="openProductDetail('ニンジャスピナー')" style="cursor:pointer;">
           <div style="display:flex;align-items:center;gap:10px;">
             <img src="https://www.pokemon-card.com/ex/m4/assets/images/ogp.png" alt="ニンジャスピナー" style="width:40px;height:56px;object-fit:contain;border-radius:4px;background:#E6F1FB;flex-shrink:0;">
-            <div><div class="store-name">ニンジャスピナー</div><div class="store-sub">2026年3月13日発売</div></div>
+            <div><div class="store-name">ニンジャスピナー</div><div class="store-sub">2026年3月13日発売 / BOX ¥6,000</div></div>
           </div>
           <span class="badge badge-won">発売中 ›</span>
         </div>
         <div class="store-row" onclick="openProductDetail('ムニキスゼロ')" style="cursor:pointer;">
           <div style="display:flex;align-items:center;gap:10px;">
             <img src="https://www.pokemon-card.com/ex/m3/assets/images/ogp.png" alt="ムニキスゼロ" style="width:40px;height:56px;object-fit:contain;border-radius:4px;background:#E6F1FB;flex-shrink:0;">
-            <div><div class="store-name">ムニキスゼロ</div><div class="store-sub">2026年1月23日発売</div></div>
+            <div><div class="store-name">ムニキスゼロ</div><div class="store-sub">2026年1月23日発売 / BOX ¥6,000</div></div>
           </div>
           <span class="badge badge-won">発売中 ›</span>
         </div>
         <div class="store-row" onclick="openProductDetail('スタートデッキ100バトルコレクション')" style="cursor:pointer;">
           <div style="display:flex;align-items:center;gap:10px;">
             <img src="https://www.pokemon-card.com/ex/mc/assets/images/ogp.png" alt="スタートデッキ100バトルコレクション" style="width:40px;height:56px;object-fit:contain;border-radius:4px;background:#E6F1FB;flex-shrink:0;">
-            <div><div class="store-name">スタートデッキ100バトルコレクション</div><div class="store-sub">2025年12月19日発売</div></div>
+            <div><div class="store-name">スタートデッキ100バトルコレクション</div><div class="store-sub">2025年12月19日発売 / ¥1,980</div></div>
           </div>
           <span class="badge badge-won">発売中 ›</span>
         </div>
@@ -286,6 +290,46 @@
         <div id="settings-store-list"></div>
       </div>
       <button class="add-btn" onclick="openModal('add-store')"><i class="ti ti-plus"></i> 店舗を追加</button>
+    </div>
+
+    <!-- Purchase -->
+    <div class="page" id="page-purchase">
+      <div class="card" style="background:linear-gradient(135deg,#EAF3DE,#E6F1FB);border-color:#B5D4F4;">
+        <div style="font-size:11px;font-weight:600;color:#0C447C;margin-bottom:6px;">🛒 購入合計</div>
+        <div style="font-size:28px;font-weight:700;color:var(--text-primary);" id="purchase-total-display">¥0</div>
+        <div style="font-size:11px;color:var(--text-secondary);margin-top:2px;" id="purchase-count-display">0件購入</div>
+      </div>
+      <div class="card">
+        <div class="section-label">発売中商品</div>
+        <div id="purchase-product-list"></div>
+      </div>
+      <div class="card">
+        <div class="section-label">購入履歴</div>
+        <div id="purchase-history-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-add-purchase" onclick="if(event.target===this)closeModal('add-purchase')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="purchase-modal-title">購入を記録する</div>
+    <div class="form-row">
+      <label class="form-label">数量</label>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button onclick="changePurchaseQty(-1)" style="width:40px;height:40px;border-radius:50%;border:0.5px solid var(--border-md);background:var(--bg-secondary);font-size:20px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;">−</button>
+        <span id="purchase-qty-display" style="font-size:24px;font-weight:600;color:var(--text-primary);min-width:40px;text-align:center;">1</span>
+        <button onclick="changePurchaseQty(1)" style="width:40px;height:40px;border-radius:50%;border:0.5px solid var(--border-md);background:var(--bg-secondary);font-size:20px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;">＋</button>
+      </div>
+    </div>
+    <div class="form-row">
+      <label class="form-label">小計</label>
+      <div id="purchase-subtotal" style="font-size:18px;font-weight:600;color:var(--text-primary);">¥0</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('add-purchase')">キャンセル</button>
+      <button class="btn-primary" onclick="savePurchase()">購入記録</button>
     </div>
   </div>
 </div>
@@ -393,16 +437,22 @@ var DEFAULT_STORES = [
 
 var stores  = DEFAULT_STORES.map(function(s){ return Object.assign({},s); });
 var appHistory = [];
+var purchases  = []; // { product, qty, price, total, date }
 var editingId = null;
 
-// ============================================================
-// 保存 / 読込
-// ============================================================
+// 商品価格マスタ（BOX単価・税込）
+var PRODUCT_PRICES = {
+  'アビスアイ':                        6000,
+  'ハイクラスパック MEGAドリームex':   5500,
+  'ニンジャスピナー':                  6000,
+  'ムニキスゼロ':                      6000,
+  'スタートデッキ100バトルコレクション': 891
+};
 var SAVE_KEY = 'pokeca_v5';
 
 function saveData(){
   try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({ stores:stores, appHistory:appHistory }));
+    localStorage.setItem(SAVE_KEY, JSON.stringify({ stores:stores, appHistory:appHistory, purchases:purchases }));
   } catch(e){}
 }
 
@@ -429,6 +479,7 @@ function loadData(){
       });
     }
     if(d.appHistory) appHistory = d.appHistory;
+    if(d.purchases)  purchases  = d.purchases;
   } catch(e){}
 }
 
@@ -447,6 +498,7 @@ function render(){
   renderHistory();
   renderAccounts();
   renderSettings();
+  renderPurchase();
 }
 
 function renderDashboard(){
@@ -491,7 +543,8 @@ function renderDashboard(){
         +'</div></div>';
     }
   }).join('');
-  // 申込中カウント：通常店舗は1件、複数アカウント店舗はアカウント数分
+  // ヘッダーの合計金額を更新
+  updateHeaderTotal();
   var appliedCount = 0;
   stores.forEach(function(s){
     if(s.maxAccounts > 1 && s.accountStatus){
@@ -919,6 +972,156 @@ function setResult(productName, sName, result){
   closeModal('product-detail');
   render();
   showToast((result==='won'?'🎉 当選':'落選')+'を記録しました（'+sName+'）');
+}
+
+// ============================================================
+// 購入ページ
+// ============================================================
+var purchaseTarget = null; // { product, price }
+var purchaseQty    = 1;
+
+var PRODUCTS = [
+  { name:'アビスアイ',                        price:6000, img:'https://www.pokemon-card.com/ex/m5/assets/images/product_pack-fid5o1xq.png', date:'2026年5月22日' },
+  { name:'ハイクラスパック MEGAドリームex',   price:5500, img:'https://www.pokemon-card.com/ex/m2a/assets/images/ogp.png',                  date:'2025年11月28日' },
+  { name:'ニンジャスピナー',                  price:6000, img:'https://www.pokemon-card.com/ex/m4/assets/images/ogp.png',                  date:'2026年3月13日' },
+  { name:'ムニキスゼロ',                      price:6000, img:'https://www.pokemon-card.com/ex/m3/assets/images/ogp.png',                  date:'2026年1月23日' },
+  { name:'スタートデッキ100バトルコレクション', price:891,  img:'https://www.pokemon-card.com/ex/mc/assets/images/ogp.png',                   date:'2025年12月19日' }
+];
+
+function renderPurchase(){
+  var total = purchases.reduce(function(s,p){ return s+p.total; }, 0);
+  var count = purchases.reduce(function(s,p){ return s+p.qty;   }, 0);
+  var td = document.getElementById('purchase-total-display');
+  var cd = document.getElementById('purchase-count-display');
+  if(td) td.textContent = '¥'+total.toLocaleString();
+  if(cd) cd.textContent = count+'BOX購入';
+
+  var pl = document.getElementById('purchase-product-list');
+  if(pl){
+    pl.innerHTML = PRODUCTS.map(function(p){
+      var bought = purchases
+        .filter(function(b){ return b.product===p.name; })
+        .reduce(function(s,b){ return s+b.qty; }, 0);
+      return '<div style="padding:10px 0;border-bottom:0.5px solid var(--border);">'
+        +'<div style="display:flex;align-items:center;gap:10px;">'
+          +'<img src="'+p.img+'" alt="'+p.name+'" style="width:36px;height:50px;object-fit:contain;border-radius:4px;background:#E6F1FB;flex-shrink:0;">'
+          +'<div style="flex:1;min-width:0;">'
+            +'<div class="store-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+p.name+'</div>'
+            +'<div class="store-sub">¥'+p.price.toLocaleString()+' / BOX</div>'
+          +'</div>'
+          +'<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">'
+            +'<button onclick="adjustPurchase(\''+p.name+'\','+p.price+',-1)" '
+            +'style="width:32px;height:32px;border-radius:50%;border:0.5px solid var(--border-md);background:var(--bg-secondary);font-size:18px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;color:var(--text-primary);">−</button>'
+            +'<span style="font-size:18px;font-weight:600;color:var(--text-primary);min-width:24px;text-align:center;">'+bought+'</span>'
+            +'<button onclick="adjustPurchase(\''+p.name+'\','+p.price+',1)" '
+            +'style="width:32px;height:32px;border-radius:50%;border:none;background:var(--accent);font-size:18px;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;color:white;">＋</button>'
+          +'</div>'
+        +'</div>'
+        +(bought>0 ? '<div style="font-size:11px;color:#27500A;margin-top:5px;">購入済 '+bought+'BOX · ¥'+(p.price*bought).toLocaleString()+'</div>' : '')
+      +'</div>';
+    }).join('');
+  }
+
+  var hl = document.getElementById('purchase-history-list');
+  if(hl){
+    if(purchases.length===0){
+      hl.innerHTML='<div style="font-size:13px;color:var(--text-secondary);padding:12px 0;text-align:center;">まだ購入記録がありません</div>';
+    } else {
+      hl.innerHTML = purchases.slice().reverse().map(function(p,i){
+        var last = i===purchases.length-1 ? 'border-bottom:none;' : '';
+        return '<div class="store-row" style="'+last+'">'
+          +'<div>'
+            +'<div class="store-name">'+p.product+'</div>'
+            +'<div class="store-sub">'+p.date+'</div>'
+          +'</div>'
+          +'<div style="text-align:right;">'
+            +'<div style="font-size:14px;font-weight:600;color:var(--text-primary);">¥'+p.total.toLocaleString()+'</div>'
+            +'<div style="font-size:11px;color:var(--text-secondary);">'+p.qty+'BOX</div>'
+          +'</div>'
+        +'</div>';
+      }).join('');
+    }
+  }
+
+  updateHeaderTotal();
+}
+
+function adjustPurchase(productName, price, delta){
+  var now  = new Date();
+  var date = now.getFullYear()+'/'+(now.getMonth()+1)+'/'+now.getDate();
+
+  if(delta > 0){
+    // 今日の記録があれば数量を加算、なければ新規追加
+    var today = purchases.find(function(p){
+      return p.product===productName && p.date===date;
+    });
+    if(today){
+      today.qty   += delta;
+      today.total  = today.price * today.qty;
+    } else {
+      purchases.unshift({ product:productName, qty:1, price:price, total:price, date:date });
+    }
+    showToast(productName+' +1BOX記録しました');
+  } else {
+    // −1：今日の記録から減算、0になったら削除
+    var idx = purchases.findIndex(function(p){
+      return p.product===productName && p.date===date;
+    });
+    if(idx === -1){
+      // 今日の記録がない場合は直近の記録から減算
+      idx = purchases.findIndex(function(p){ return p.product===productName; });
+    }
+    if(idx !== -1){
+      purchases[idx].qty -= 1;
+      purchases[idx].total = purchases[idx].price * purchases[idx].qty;
+      if(purchases[idx].qty <= 0) purchases.splice(idx,1);
+      showToast(productName+' -1BOX');
+    }
+  }
+  saveData();
+  renderPurchase();
+}
+
+function updateHeaderTotal(){
+  var wonTotal = appHistory
+    .filter(function(h){ return h.result==='won'; })
+    .reduce(function(s,h){ return s+(PRODUCT_PRICES[h.product]||0); }, 0);
+  var purchaseTotal = purchases.reduce(function(s,p){ return s+p.total; }, 0);
+  var grandTotal = wonTotal + purchaseTotal;
+  var el = document.getElementById('header-won-total');
+  if(el) el.textContent = grandTotal>0 ? '合計 ¥'+grandTotal.toLocaleString() : '合計 ¥0';
+}
+
+function openPurchaseModal(productName, price){
+  purchaseTarget = { product:productName, price:price };
+  purchaseQty    = 1;
+  document.getElementById('purchase-modal-title').textContent = productName;
+  document.getElementById('purchase-qty-display').textContent  = purchaseQty;
+  document.getElementById('purchase-subtotal').textContent     = '¥'+(price*purchaseQty).toLocaleString();
+  openModal('add-purchase');
+}
+
+function changePurchaseQty(delta){
+  purchaseQty = Math.max(1, purchaseQty+delta);
+  document.getElementById('purchase-qty-display').textContent = purchaseQty;
+  document.getElementById('purchase-subtotal').textContent    = '¥'+(purchaseTarget.price*purchaseQty).toLocaleString();
+}
+
+function savePurchase(){
+  if(!purchaseTarget) return;
+  var now  = new Date();
+  var date = now.getFullYear()+'/'+(now.getMonth()+1)+'/'+now.getDate();
+  purchases.unshift({
+    product: purchaseTarget.product,
+    qty:     purchaseQty,
+    price:   purchaseTarget.price,
+    total:   purchaseTarget.price * purchaseQty,
+    date:    date
+  });
+  saveData();
+  closeModal('add-purchase');
+  render();
+  showToast(purchaseTarget.product+' '+purchaseQty+'BOXを記録しました');
 }
 
 // ============================================================
