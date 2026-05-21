@@ -85,6 +85,7 @@
   .appHistory-icon { width: 36px; height: 36px; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
   .icon-won { background: #EAF3DE; color: #639922; }
   .icon-lost { background: #F1EFE8; color: #888780; }
+  .icon-pending { background: #FAEEDA; color: #BA7517; }
   .appHistory-body { flex: 1; min-width: 0; }
   .appHistory-product { font-size: 13px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .appHistory-store { font-size: 11px; color: var(--text-secondary); margin-top: 2px; }
@@ -585,19 +586,61 @@ function renderLatestPills(){
   }).join('');
 }
 
+function openResultFromHistory(productName, sName, account){
+  // 結果入力モーダルを開いて該当店舗・商品を選択状態にする
+  openModal('add-result');
+  // 商品を選択
+  var pSel = document.getElementById('sel-result-product');
+  if(pSel){
+    for(var i=0;i<pSel.options.length;i++){
+      if(pSel.options[i].value===productName){ pSel.selectedIndex=i; break; }
+    }
+  }
+  // 店舗を申込済みから探して選択
+  var rSel = document.getElementById('sel-result-store');
+  if(rSel){
+    for(var j=0;j<rSel.options.length;j++){
+      if(rSel.options[j].value===sName){ rSel.selectedIndex=j; break; }
+    }
+  }
+}
+
 function renderHistory(){
   document.getElementById('appHistory-list').innerHTML = appHistory.length===0
     ? '<div style="color:var(--text-secondary);font-size:13px;padding:12px 0;text-align:center;">まだ記録がありません</div>'
     : appHistory.map(function(h,i){
-        var won  = h.result==='won';
-        var last = i===appHistory.length-1 ? 'border-bottom:none;' : '';
-        return '<div class="appHistory-item" style="'+last+'">'
-          +'<div class="appHistory-icon '+(won?'icon-won':'icon-lost')+'">'
-          +'<i class="ti '+(won?'ti-trophy':'ti-x')+'" style="font-size:18px;"></i></div>'
-          +'<div class="appHistory-body"><div class="appHistory-product">'+h.product+'</div>'
+        var last    = i===appHistory.length-1 ? 'border-bottom:none;' : '';
+        var isEntry = h.type==='entry' || h.result==='pending';
+        var isWon   = h.result==='won';
+        var isLost  = h.result==='lost';
+        var iconClass, iconName, badgeClass, badgeLabel, clickAttr;
+        if(isEntry){
+          iconClass  = 'icon-pending';
+          iconName   = 'ti-clock-hour-4';
+          badgeClass = 'badge-pending';
+          badgeLabel = '申込中';
+          clickAttr  = 'onclick="openResultFromHistory(\''+h.product+'\',\''+storeName(h)+'\',\''+h.account+'\')" style="cursor:pointer;"';
+        } else if(isWon){
+          iconClass  = 'icon-won';
+          iconName   = 'ti-trophy';
+          badgeClass = 'badge-won';
+          badgeLabel = '当選';
+          clickAttr  = '';
+        } else {
+          iconClass  = 'icon-lost';
+          iconName   = 'ti-x';
+          badgeClass = 'badge-lost';
+          badgeLabel = '落選';
+          clickAttr  = '';
+        }
+        return '<div class="appHistory-item" style="'+last+'" '+clickAttr+'>'
+          +'<div class="appHistory-icon '+iconClass+'">'
+          +'<i class="ti '+iconName+'" style="font-size:18px;"></i></div>'
+          +'<div class="appHistory-body">'
+          +'<div class="appHistory-product">'+h.product+'</div>'
           +'<div class="appHistory-store">'+storeName(h)+'・'+h.account+'</div></div>'
-          +'<div class="appHistory-right"><span class="badge '+(won?'badge-won':'badge-lost')+'">'
-          +(won?'当選':'落選')+'</span>'
+          +'<div class="appHistory-right">'
+          +'<span class="badge '+badgeClass+'">'+badgeLabel+'</span>'
           +'<div class="appHistory-date">'+h.date+'</div></div></div>';
       }).join('');
 }
