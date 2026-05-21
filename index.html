@@ -457,24 +457,34 @@ function renderDashboard(){
   };
   document.getElementById('dashboard-store-list').innerHTML = stores.map(function(s){
     if(s.maxAccounts > 1 && s.accountStatus){
-      // アカウント複数の場合（ポケモンセンター）
       var appliedCount = s.accountStatus.filter(function(a){ return a==='applied'; }).length;
       var accountBadges = s.accountStatus.map(function(a, i){
         var st = statusMap[a]||statusMap.none;
-        return '<span class="badge '+st[1]+'" style="font-size:10px;padding:2px 6px;">AC'+(i+1)+'</span>';
+        // このアカウントの申込商品を取得
+        var rec = appHistory.find(function(h){
+          return h.type==='entry' && storeName(h)===s.name && h.account===('アカウント'+(i+1));
+        });
+        var productLabel = rec ? '<span style="font-size:10px;color:var(--text-secondary);margin-left:2px;">'+rec.product+'</span>' : '';
+        return '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;">'
+          +'<span class="badge '+st[1]+'" style="font-size:10px;padding:2px 6px;">AC'+(i+1)+'</span>'
+          +productLabel
+          +'</div>';
       }).join('');
-      var overallSt = appliedCount > 0 ? statusMap.applied : statusMap.none;
       return '<div class="store-row" style="flex-direction:column;align-items:flex-start;gap:6px;">'
         +'<div style="display:flex;align-items:center;justify-content:space-between;width:100%;">'
         +'<div class="store-name">'+s.name+'</div>'
         +'<span style="font-size:11px;color:var(--text-secondary);">'+appliedCount+'/'+s.maxAccounts+'件申込</span>'
         +'</div>'
-        +'<div style="display:flex;flex-wrap:wrap;gap:4px;">'+accountBadges+'</div>'
+        +'<div style="display:flex;flex-direction:column;width:100%;">'+accountBadges+'</div>'
         +'</div>';
     } else {
       var st = statusMap[s.status]||statusMap.none;
+      // 申込済みの場合は商品名を表示
+      var entryRec = appHistory.find(function(h){ return h.type==='entry' && storeName(h)===s.name; });
+      var productSub = (entryRec && s.status==='applied')
+        ? '<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">'+entryRec.product+'</div>' : '';
       return '<div class="store-row">'
-        +'<div class="store-name">'+s.name+'</div>'
+        +'<div><div class="store-name">'+s.name+'</div>'+productSub+'</div>'
         +'<div style="display:flex;align-items:center;gap:6px;">'
         +'<span class="badge '+st[1]+'">'+st[0]+'</span>'
         +'<div class="status-dot '+st[2]+'"></div>'
@@ -823,25 +833,75 @@ function renderProductDetail(productName){
     +'</div>'
     +'<div style="font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">店舗別</div>';
   html += stores.map(function(s){
-    var rec = rel.find(function(h){ return storeName(h)===s.name; });
-    var res = rec ? rec.result : null;
-    var ws = res==='won'
-      ? 'flex:1;padding:8px 0;border-radius:var(--radius-md);border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;background:#639922;color:white;'
-      : 'flex:1;padding:8px 0;border-radius:var(--radius-md);border:0.5px solid #639922;font-size:12px;cursor:pointer;font-family:inherit;background:none;color:#639922;';
-    var ls = res==='lost'
-      ? 'flex:1;padding:8px 0;border-radius:var(--radius-md);border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;background:#888780;color:white;'
-      : 'flex:1;padding:8px 0;border-radius:var(--radius-md);border:0.5px solid #888780;font-size:12px;cursor:pointer;font-family:inherit;background:none;color:#888780;';
-    var cs = 'padding:8px 10px;border-radius:var(--radius-md);border:0.5px solid var(--border-md);font-size:12px;cursor:pointer;font-family:inherit;background:none;color:var(--text-secondary);';
-    return '<div style="padding:10px 0;border-bottom:0.5px solid var(--border);">'
-      +'<div style="font-size:13px;font-weight:500;margin-bottom:7px;">'+s.name+'</div>'
-      +'<div style="display:flex;gap:6px;">'
-      +'<button style="'+ws+'" onclick="setResult(\''+productName+'\',\''+s.name+'\',\'won\')">🎉 当選</button>'
-      +'<button style="'+ls+'" onclick="setResult(\''+productName+'\',\''+s.name+'\',\'lost\')">✕ 落選</button>'
-      +(rec?'<button style="'+cs+'" onclick="setResult(\''+productName+'\',\''+s.name+'\',\'clear\')">取消</button>':'')
-      +'</div></div>';
+    if(s.maxAccounts > 1 && s.accountStatus){
+      // ポケモンセンターなど複数アカウント店舗
+      var rows = '';
+      for(var i=0; i<s.maxAccounts; i++){
+        var acLabel = 'アカウント'+(i+1);
+        var rec = rel.find(function(h){ return storeName(h)===s.name && h.account===acLabel; });
+        var res = rec ? rec.result : null;
+        var ws = res==='won'
+          ? 'flex:1;padding:6px 0;border-radius:var(--radius-md);border:none;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;background:#639922;color:white;'
+          : 'flex:1;padding:6px 0;border-radius:var(--radius-md);border:0.5px solid #639922;font-size:11px;cursor:pointer;font-family:inherit;background:none;color:#639922;';
+        var ls = res==='lost'
+          ? 'flex:1;padding:6px 0;border-radius:var(--radius-md);border:none;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;background:#888780;color:white;'
+          : 'flex:1;padding:6px 0;border-radius:var(--radius-md);border:0.5px solid #888780;font-size:11px;cursor:pointer;font-family:inherit;background:none;color:#888780;';
+        var cs = 'padding:6px 8px;border-radius:var(--radius-md);border:0.5px solid var(--border-md);font-size:11px;cursor:pointer;font-family:inherit;background:none;color:var(--text-secondary);';
+        var acI = i; // closure用
+        rows += '<div style="display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:0.5px solid var(--border);">'
+          +'<span style="font-size:12px;font-weight:500;min-width:80px;">'+acLabel+'</span>'
+          +'<button style="'+ws+'" onclick="setResultAc(\''+productName+'\',\''+s.name+'\',\''+acLabel+'\',\'won\')">🎉</button>'
+          +'<button style="'+ls+'" onclick="setResultAc(\''+productName+'\',\''+s.name+'\',\''+acLabel+'\',\'lost\')">✕</button>'
+          +(rec ? '<button style="'+cs+'" onclick="setResultAc(\''+productName+'\',\''+s.name+'\',\''+acLabel+'\',\'clear\')">取消</button>' : '')
+          +'</div>';
+      }
+      return '<div style="padding:10px 0;border-bottom:0.5px solid var(--border);">'
+        +'<div style="font-size:13px;font-weight:500;margin-bottom:6px;">'+s.name+'</div>'
+        +rows+'</div>';
+    } else {
+      var rec = rel.find(function(h){ return storeName(h)===s.name; });
+      var res = rec ? rec.result : null;
+      var ws = res==='won'
+        ? 'flex:1;padding:8px 0;border-radius:var(--radius-md);border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;background:#639922;color:white;'
+        : 'flex:1;padding:8px 0;border-radius:var(--radius-md);border:0.5px solid #639922;font-size:12px;cursor:pointer;font-family:inherit;background:none;color:#639922;';
+      var ls = res==='lost'
+        ? 'flex:1;padding:8px 0;border-radius:var(--radius-md);border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;background:#888780;color:white;'
+        : 'flex:1;padding:8px 0;border-radius:var(--radius-md);border:0.5px solid #888780;font-size:12px;cursor:pointer;font-family:inherit;background:none;color:#888780;';
+      var cs = 'padding:8px 10px;border-radius:var(--radius-md);border:0.5px solid var(--border-md);font-size:12px;cursor:pointer;font-family:inherit;background:none;color:var(--text-secondary);';
+      return '<div style="padding:10px 0;border-bottom:0.5px solid var(--border);">'
+        +'<div style="font-size:13px;font-weight:500;margin-bottom:7px;">'+s.name+'</div>'
+        +'<div style="display:flex;gap:6px;">'
+        +'<button style="'+ws+'" onclick="setResult(\''+productName+'\',\''+s.name+'\',\'won\')">🎉 当選</button>'
+        +'<button style="'+ls+'" onclick="setResult(\''+productName+'\',\''+s.name+'\',\'lost\')">✕ 落選</button>'
+        +(rec?'<button style="'+cs+'" onclick="setResult(\''+productName+'\',\''+s.name+'\',\'clear\')">取消</button>':'')
+        +'</div></div>';
+    }
   }).join('');
   document.getElementById('modal-product-body').innerHTML=html;
 }
+function setResultAc(productName, sName, acLabel, result){
+  var now  = new Date();
+  var date = (now.getMonth()+1)+'/'+(now.getDate());
+  var s    = stores.find(function(s){ return s.name===sName; });
+  if(result==='clear'){
+    appHistory = appHistory.filter(function(h){
+      return !(h.product===productName && storeName(h)===sName && h.account===acLabel);
+    });
+    saveData(); render(); renderProductDetail(productName); return;
+  }
+  var ex = appHistory.find(function(h){
+    return h.product===productName && storeName(h)===sName && h.account===acLabel;
+  });
+  if(ex){ ex.result=result; }
+  else {
+    appHistory.unshift({ product:productName, storeId:s?s.id:null, storeName:sName, account:acLabel, result:result, date:date });
+  }
+  saveData();
+  closeModal('product-detail');
+  render();
+  showToast((result==='won'?'🎉 当選':'落選')+'を記録しました（'+sName+' '+acLabel+'）');
+}
+
 function setResult(productName, sName, result){
   var now=new Date();
   var date=(now.getMonth()+1)+'/'+(now.getDate());
